@@ -19,3 +19,6 @@ Electron sandbox, context isolation and web security are enabled. The renderer h
 
 ## Acceptance checklist before public release
 Test install, launch from Applications/Start Menu, inbox and rule-preview behavior without a server, close/reopen, uninstall and upgrade on Intel/Apple Silicon Macs and Windows x64. Record OS versions/results. Add credential storage, safe OAuth handoff and update verification before real-account beta. Configure signing and notarization in restricted CI environments, then verify OS trust on clean systems.
+
+## Recorded validation (2026-10-22)
+13 automated tests and syntax checks passed locally. electron-builder generated both Apple Silicon and Intel `.app` bundles. Local DMG creation failed at hdiutil (`Device not configured`), so DMG output is not validated. ZIP archives preserve the built app bundles as a fallback. Native UI launch inspection timed out; install/launch acceptance is still pending. Windows packaging is configured but has not been built or tested in this environment. The GitHub Actions API reported no runs after the initial push; workflow execution is not verified.

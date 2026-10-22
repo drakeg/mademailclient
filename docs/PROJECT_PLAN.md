@@ -9,7 +9,7 @@ Mac and Windows installable apps are the primary deliverables. Hosted web access
 
 | ID | Immediate desktop story | Acceptance | Status |
 |---|---|---|---|
-| X00 | Bundled desktop shell and DMG/EXE builds | No server needed; sandboxed renderer; Mac/Windows artifact workflow | Implemented; build validation in progress |
+| X00 | Bundled desktop shell and DMG/EXE builds | No server needed; sandboxed renderer; Mac/Windows artifact workflow | Implemented; Mac app bundles built, DMG and Windows validation pending |
 | X02 | Native installer acceptance | Install, launch, close/reopen, uninstall on Mac Intel/ARM and Windows x64 | Next |
 | X03 | Trusted distribution | Signed Windows app, signed/notarized Mac app, verified update strategy | Backlog |
 
