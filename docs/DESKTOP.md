@@ -22,3 +22,10 @@ Test install, launch from Applications/Start Menu, inbox and rule-preview behavi
 
 ## Recorded validation (2026-10-22)
 13 automated tests and syntax checks passed locally. electron-builder generated both Apple Silicon and Intel `.app` bundles. Local DMG creation failed at hdiutil (`Device not configured`), so DMG output is not validated. ZIP archives preserve the built app bundles as a fallback. Native UI launch inspection timed out; install/launch acceptance is still pending. Windows packaging is configured but has not been built or tested in this environment. The GitHub Actions API reported no runs after the initial push; workflow execution is not verified.
+
+## Platform menus and shared interface
+Desktop menus use Electron's native OS menu roles rather than HTML imitations. macOS uses the system menu bar: Made Mail (About, Services, Hide, Quit), File, Edit, View, Window, Help. Windows uses the window's File/Edit/View/Help menu with Alt-key mnemonics, File → Exit, and Help → About. Standard edit and window commands use platform keyboard shortcuts. Settings/account and mail commands will be added when their underlying features are available; no placeholder Settings command is exposed.
+
+The shared renderer now uses a compact three-pane inbox, account/folder navigation, date-grouped rows, unread/flag indicators, density control, and a modal rules preview. Archive/Junk/Deleted Items and read/flag actions affect synthetic messages in memory only. Browser checks verified account filtering, search, empty states and rule matches. Native menu integration has automated platform-template tests; OS interaction acceptance remains pending.
+
+Design references: https://support.apple.com/guide/mail/welcome/mac and https://support.microsoft.com/en-us/outlook/mail/change-how-the-message-list-is-displayed-in-outlook . Menu roles: https://www.electronjs.org/docs/latest/tutorial/application-menu .

@@ -1,6 +1,7 @@
-const { app, BrowserWindow, Menu, protocol, session } = require('electron');
+const { app, BrowserWindow, Menu, protocol, session, dialog } = require('electron');
 const { join } = require('node:path');
 const { assetResponse } = require('./assets.cjs');
+const { createMenuTemplate } = require('./menu.cjs');
 app.enableSandbox();
 protocol.registerSchemesAsPrivileged([{scheme:'mademail',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let window;
@@ -16,13 +17,11 @@ app.whenReady().then(()=>{
   protocol.handle('mademail',request=>assetResponse(join(__dirname,'../..'),request));
   session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
   session.defaultSession.setPermissionCheckHandler(()=>false);
-  Menu.setApplicationMenu(Menu.buildFromTemplate([
-    ...(process.platform === 'darwin' ? [{label:'Made Mail',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{type:'separator'},{role:'quit'}]}] : []),
-    {label:'File',submenu:[{role:process.platform === 'darwin'?'close':'quit'}]},
-    {label:'Edit',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},
-    {label:'View',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]},
-    {label:'Window',submenu:[{role:'minimize'},{role:'zoom'}]}
-  ]));
+  app.setName('Made Mail');
+  app.setAboutPanelOptions({ applicationName: 'Made Mail', applicationVersion: app.getVersion(), copyright: 'Made Mail contributors' });
+  Menu.setApplicationMenu(Menu.buildFromTemplate(createMenuTemplate(process.platform, {
+    showAbout: () => dialog.showMessageBox({ type: 'info', title: 'About Made Mail', message: 'Made Mail', detail: `Version ${app.getVersion()}\nDesktop preview with fictional mail. Real account connections are not available yet.` }),
+  })));
   createWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });
