@@ -34,3 +34,6 @@ Start with [project plan](docs/PROJECT_PLAN.md), [architecture](docs/ARCHITECTUR
 
 ## License
 MIT; see LICENSE. This is an original implementation and is not affiliated with Microsoft or Apple. Do not copy proprietary code, assets, or branding.
+
+## Alpha testing and releases
+See [desktop testing](docs/TESTING.md) and [alpha acceptance status](docs/releases/alpha-acceptance.md). Platform installers are built by GitHub Actions. Matching alpha version tags create a draft prerelease only after all three packaged-app smoke tests pass. Normal distribution remains gated on native installation acceptance and signing/notarization. Release source archives are not installers.
