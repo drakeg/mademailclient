@@ -2,15 +2,19 @@ const { app, BrowserWindow, Menu, protocol, session, dialog } = require('electro
 const { join } = require('node:path');
 const { assetResponse } = require('./assets.cjs');
 const { createMenuTemplate } = require('./menu.cjs');
+const { attachSmokeTest } = require('./smoke.cjs');
+const smokeTest = process.argv.includes('--smoke-test');
+if (smokeTest && process.env.MADEMAIL_SMOKE_PROFILE) app.setPath('userData', process.env.MADEMAIL_SMOKE_PROFILE);
 app.enableSandbox();
 protocol.registerSchemesAsPrivileged([{scheme:'mademail',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let window;
 function createWindow() {
-  window = new BrowserWindow({width:1280,height:850,minWidth:720,minHeight:540,title:'Made Mail',backgroundColor:'#f6f7f5',webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+  window = new BrowserWindow({show:!smokeTest,width:1280,height:850,minWidth:720,minHeight:540,title:'Made Mail',backgroundColor:'#f6f7f5',webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('will-navigate',(event,url)=>{if(url !== 'mademail://app/') event.preventDefault();});
   window.webContents.on('will-attach-webview',event=>event.preventDefault());
   window.on('closed',()=>{window=null;});
+  if (smokeTest) attachSmokeTest(app, window, Menu);
   window.loadURL('mademail://app/');
 }
 app.whenReady().then(()=>{

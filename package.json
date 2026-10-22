@@ -1,6 +1,6 @@
 {
   "name": "mademailclient",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,11 +9,12 @@
   "scripts": {
     "dev": "node server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs && node --check apps/desktop/main.cjs && node --check apps/desktop/assets.cjs && node --check apps/desktop/menu.cjs",
+    "check": "node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs && node --check apps/desktop/main.cjs && node --check apps/desktop/assets.cjs && node --check apps/desktop/menu.cjs && node --check apps/desktop/smoke.cjs && node --check scripts/desktop-smoke.mjs",
     "desktop": "electron .",
     "desktop:pack": "electron-builder --dir",
     "desktop:mac": "electron-builder --mac",
-    "desktop:win": "electron-builder --win"
+    "desktop:win": "electron-builder --win",
+    "desktop:smoke": "node scripts/desktop-smoke.mjs"
   },
   "main": "apps/desktop/main.cjs",
   "description": "Made Mail desktop email client prototype",
@@ -63,6 +64,7 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
-    }
+    },
+    "artifactName": "Made-Mail-${version}-${os}-${arch}.${ext}"
   }
 }

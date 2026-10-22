@@ -2,24 +2,33 @@ name: Desktop installers
 on:
   workflow_dispatch:
   push:
-    branches: [feat/desktop-apps]
+    branches: ['feat/**', main]
+    tags: ['v*-alpha.*']
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   package:
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            command: desktop:mac
-            artifact: mac-installers
-            glob: dist/*.dmg
+          - os: macos-15
+            platform: mac
+            arch: arm64
+            executable: dist/mac-arm64/Made Mail.app/Contents/MacOS/Made Mail
+          - os: macos-15-intel
+            platform: mac
+            arch: x64
+            executable: dist/mac/Made Mail.app/Contents/MacOS/Made Mail
           - os: windows-latest
-            command: desktop:win
-            artifact: windows-installer
-            glob: dist/*.exe
+            platform: win
+            arch: x64
+            executable: dist/win-unpacked/Made Mail.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -32,11 +41,43 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm test
-      - run: pnpm run ${{ matrix.command }} --publish never
+      - name: Package unsigned prototype
+        run: pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Launch packaged app and exercise synthetic inbox
+        run: pnpm desktop:smoke "${{ matrix.executable }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.glob }}
+          name: installer-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.exe
           if-no-files-found: error
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installer-*
+          merge-multiple: true
+          path: release-assets
+      - name: Verify version and generate SHA-256 checksums
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release-assets.mjs
+      - name: Create draft prerelease (never publish automatically)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" release-assets/* --verify-tag --draft --prerelease --title "Made Mail $RELEASE_TAG — desktop preview" --notes-file docs/releases/alpha-notes.md
