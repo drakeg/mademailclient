@@ -1,5 +1,7 @@
 # Made Mail desktop preview
 
+> **Known Mac installation issue:** the downloaded Mac app has been reported as “damaged and can’t be opened.” Signing was disabled in this build. Do not use the Mac DMGs for normal installation or bypass macOS protections. A signed and notarized replacement is pending; the existing assets have not been fixed.
+
 Experimental prerelease made downloadable at the repository owner’s request for sample-mail testing. Not intended for real accounts or normal daily use.
 
 ## Downloads
