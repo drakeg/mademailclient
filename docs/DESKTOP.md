@@ -5,7 +5,7 @@ Mac and Windows installers are the primary product deliverables. Hosted web acce
 ## Development
 Use Node.js 22+ and pnpm 11. Run `pnpm install --frozen-lockfile`, then `pnpm desktop`. Build on the target operating system:
 
-- Mac: `pnpm desktop:mac` produces Apple Silicon and Intel DMG files under dist/.
+- Mac: `pnpm desktop:mac --arm64` or `pnpm desktop:mac --x64` produces the selected Apple Silicon or Intel DMG file under dist/.
 - Windows: `pnpm desktop:win` produces an x64 NSIS setup EXE under dist/.
 - `pnpm desktop:pack` produces an unpacked app for local inspection.
 
