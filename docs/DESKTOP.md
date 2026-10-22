@@ -31,7 +31,7 @@ The shared renderer now uses a compact three-pane inbox, account/folder navigati
 Design references: https://support.apple.com/guide/mail/welcome/mac and https://support.microsoft.com/en-us/outlook/mail/change-how-the-message-list-is-displayed-in-outlook . Menu roles: https://www.electronjs.org/docs/latest/tutorial/application-menu .
 
 ## alpha.2 window and mailbox update
-The desktop window explicitly requests the standard OS frame/title bar, visible Mac traffic lights, normal (not full-screen) startup, and a regular macOS application menu. View → Restore Standard Window (Command+0 on Mac, Ctrl+0 on Windows) exits full screen and restores window controls. Mac application menus are in the system menu bar at the top of the screen.
+The desktop window explicitly requests the standard OS frame/title bar, visible Mac traffic lights, normal (not full-screen) startup, and a regular macOS application menu. View → Restore Standard Window (Command+Shift+0 on Mac, Ctrl+Shift+0 on Windows) exits full screen and restores window controls. Mac application menus are in the system menu bar at the top of the screen.
 
 Mailbox → Empty Junk / Empty Deleted Items and right-click mailbox menus now open a confirmation showing the count and scope across the sample accounts. The mailbox also has a visible Empty button. Cancel/Escape leaves messages untouched; only the selected Junk or Deleted Items folder is emptied after confirmation, ignoring search filters. These are in-memory fictional messages, not provider operations.
 

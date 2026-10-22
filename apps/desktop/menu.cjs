@@ -18,7 +18,7 @@ function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, re
     { label: mac ? 'View' : '&View', submenu: [
       { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
       { type: 'separator' }, { role: 'togglefullscreen' },
-      { label: 'Restore Standard Window', accelerator: 'CmdOrCtrl+0', click: restoreWindow },
+      { label: 'Restore Standard Window', accelerator: 'CmdOrCtrl+Shift+0', click: restoreWindow },
     ] },
     { label: mac ? 'Mailbox' : '&Mailbox', submenu: [
       { label: 'Empty Junk…', click: () => mailboxCommand('junk') },
