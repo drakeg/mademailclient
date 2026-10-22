@@ -61,3 +61,7 @@ Points are rough relative estimates (1, 2, 3, 5, 8); split larger stories after 
 Provider limits and organizational consent may restrict accounts: validate in D01 before committing support. Duplicate events can cause destructive repeats: durable idempotency and ambiguous-outcome tests block execution release. Token compromise and tenant leaks block alpha. Desktop signing and hosting costs need owner decisions before distribution. Large mailbox performance requires a synthetic benchmark and agreed budget during S01 refinement.
 
 Track iteration completion versus commitment, escaped defects, blocked time, sync lag and rule failures; establish targets from alpha measurements. Do not collect mail content for metrics. Review real-user workflow with synthetic examples at each milestone.
+
+## Alpha release pipeline progress
+
+Release automation now builds Mac arm64, Mac x64 and Windows x64 on matching GitHub runners, performs packaged-app smoke tests and creates draft alpha releases with checksums only after all targets pass. Initial platform validation passed: https://github.com/drakeg/mademailclient/actions/runs/39837289663 . Native menu interaction, installer acceptance and trusted signing remain open gates; see releases/alpha-acceptance.md and TESTING.md. No public release is approved by these automated checks alone.
