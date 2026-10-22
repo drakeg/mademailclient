@@ -1,0 +1,15 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { planRules, validateRule, canAutoReply } from '../packages/core/rules.mjs';
+const message={id:'m1',accountId:'work',from:'Alex@Example.com',subject:'October invoice',unread:true};
+const rule=(changes={})=>({id:'r1',enabled:true,match:'all',conditions:[{field:'subject',operator:'contains',value:'INVOICE'}],actions:[{type:'move',value:'folder-id'}],...changes});
+test('case insensitive matching produces plans without mutating inputs',()=>{const r=rule();const before=JSON.stringify({message,r});assert.equal(planRules(message,[r])[0].actions[0].value,'folder-id');assert.equal(JSON.stringify({message,r}),before);});
+test('account scoping and disabled rules exclude messages',()=>{assert.deepEqual(planRules(message,[rule({accountId:'personal'}),rule({enabled:false})]),[]);});
+test('exceptions override any matching conditions',()=>{assert.deepEqual(planRules(message,[rule({exceptions:[{field:'from',operator:'contains',value:'example.com'}]})]),[]);});
+test('all requires every condition; any allows one',()=>{const conditions=[...rule().conditions,{field:'from',operator:'equals',value:'no'}];assert.equal(planRules(message,[rule({conditions})]).length,0);assert.equal(planRules(message,[rule({conditions,match:'any'})]).length,1);});
+test('ordered matching rules honor stop processing',()=>{assert.deepEqual(planRules(message,[rule({stopProcessing:true}),rule({id:'r2'})]).map(p=>p.ruleId),['r1']);assert.equal(planRules(message,[rule(),rule({id:'r2'})]).length,2);});
+test('nonmatching stop processing does not halt following rules',()=>{assert.equal(planRules(message,[rule({conditions:[{field:'subject',operator:'equals',value:'absent'}],stopProcessing:true}),rule({id:'r2'})])[0].ruleId,'r2');});
+test('unknown fields/actions, empty targets, invalid booleans fail closed',()=>{for(const r of [rule({actions:[{type:'execute'}]}),rule({actions:[{type:'move',value:' '}]}),rule({conditions:[{field:'script',operator:'equals',value:'x'}]}),rule({conditions:[{field:'unread',operator:'contains',value:true}]})])assert.throws(()=>validateRule(r));});
+test('required actions can all be planned',()=>{for(const type of ['move','junk','trash','deletePermanently','autoReply'])assert.equal(planRules(message,[rule({actions:[{type,value:'target'}]})])[0].actions[0].type,type);});
+test('missing fields do not match and boolean equals works',()=>{assert.equal(planRules(message,[rule({conditions:[{field:'body',operator:'contains',value:'x'}]})]).length,0);assert.equal(planRules(message,[rule({conditions:[{field:'unread',operator:'equals',value:true}]})]).length,1);});
+test('reply policy blocks loops and repeated sender replies within cooldown',()=>{assert.equal(canAutoReply({}),true);for(const key of ['automated','mailingList','fromSelf'])assert.equal(canAutoReply({[key]:true}),false);assert.equal(canAutoReply({lastReplyAt:100,now:101}),false);assert.equal(canAutoReply({lastReplyAt:0,now:86400000}),true);});
