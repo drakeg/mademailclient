@@ -28,6 +28,7 @@ app.whenReady().then(()=>{
   app.setName('Made Mail');
   app.setAboutPanelOptions({ applicationName: 'Made Mail', applicationVersion: app.getVersion(), copyright: 'Made Mail contributors' });
   Menu.setApplicationMenu(Menu.buildFromTemplate(createMenuTemplate(process.platform, {
+    accountsCommand: mode => { if (window && !window.isDestroyed()) window.webContents.send('accounts:open', mode); },
     restoreWindow: () => {
       if (!window) { createWindow(); return; }
       window.setFullScreen(false);

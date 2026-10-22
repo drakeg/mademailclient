@@ -19,8 +19,8 @@ let view='inbox', unreadOnly=false, selectedId='1', noticeTimer;
 const el=id=>document.getElementById(id);
 const text=(tag,value,parent,className)=>{const n=document.createElement(tag);n.textContent=value;if(className)n.className=className;parent.append(n);return n;};
 const icon=(name,parent)=>{const n=document.createElementNS('http://www.w3.org/2000/svg','svg');n.setAttribute('class','icon');n.setAttribute('aria-hidden','true');const use=document.createElementNS(n.namespaceURI,'use');use.setAttribute('href',`#i-${name}`);n.append(use);parent.append(n);return n;};
-const names={inbox:'All inboxes',work:'Work inbox',personal:'Personal inbox',unread:'Unread',flagged:'Flagged',archive:'Archive',junk:'Junk',trash:'Deleted items','work:sent':'Work · Sent','personal:sent':'Personal · Sent','work:projects':'Work · Projects'};
-const accountName=id=>id==='work'?'Work':'Personal';
+const names={inbox:'All inboxes',work:'you@work.example',personal:'you@personal.example',sent:'Sent',projects:'Projects',unread:'Unread',flagged:'Flagged',archive:'Archive',junk:'Junk',trash:'Deleted items','work:sent':'Work · Sent','personal:sent':'Personal · Sent','work:projects':'Work · Projects'};
+const accountName=id=>id==='work'?'you@work.example':'you@personal.example';
 function inView(m,target=view){
  if(target==='work'||target==='personal')return m.accountId===target&&m.folder==='inbox';
  if(target.includes(':')){const [account,folder]=target.split(':');return m.accountId===account&&m.folder===folder;}
@@ -91,3 +91,20 @@ window.desktopMail?.onMailboxCommand(requestEmpty);
 const mode=document.querySelector('.local-note');
 mode.firstChild.textContent=window.desktopMail?'Desktop preview':'Browser preview';
 if(!window.desktopMail)mode.querySelector('span').textContent='Run pnpm desktop for native Mac/Windows menus.';
+
+function closeWindowMenus(){document.querySelectorAll('.window-menu details').forEach(menu=>menu.open=false);}
+function openAccounts(mode='manage'){
+ closeWindowMenus();el('accounts-title').textContent=mode==='add'?'Add Account':'Accounts';
+ el('accounts-description').textContent=mode==='add'?'Connect an existing email address. Account connections are not available in this preview yet.':'These addresses identify fictional sample mailboxes, not connected accounts.';
+ el('accounts').showModal();
+}
+document.querySelectorAll('[data-open-accounts]').forEach(button=>button.onclick=()=>openAccounts(button.dataset.openAccounts));
+el('accounts-close').onclick=()=>el('accounts').close();
+window.desktopMail?.onAccountsCommand(openAccounts);
+el('menu-density').onclick=()=>{closeWindowMenus();el('density').click();};
+el('menu-rules').onclick=()=>{closeWindowMenus();el('rules').showModal();};
+document.querySelectorAll('[data-menu-empty]').forEach(button=>button.onclick=()=>{closeWindowMenus();requestEmpty(button.dataset.menuEmpty);});
+el('menu-about').onclick=()=>{closeWindowMenus();el('about').showModal();};el('about-close').onclick=()=>el('about').close();
+document.querySelectorAll('.window-menu details').forEach(menu=>menu.addEventListener('toggle',()=>{if(menu.open)document.querySelectorAll('.window-menu details').forEach(other=>{if(other!==menu)other.open=false;});}));
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeWindowMenus();});
+document.addEventListener('click',event=>{if(!event.target.closest('.window-menu'))closeWindowMenus();});

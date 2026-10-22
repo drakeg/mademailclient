@@ -36,3 +36,8 @@ The desktop window explicitly requests the standard OS frame/title bar, visible 
 Mailbox → Empty Junk / Empty Deleted Items and right-click mailbox menus now open a confirmation showing the count and scope across the sample accounts. The mailbox also has a visible Empty button. Cancel/Escape leaves messages untouched; only the selected Junk or Deleted Items folder is emptied after confirmation, ignoring search filters. These are in-memory fictional messages, not provider operations.
 
 A narrowly scoped preload bridge exposes only mailbox menu requests and fixed mailbox commands. Main-process requests validate the originating window, main frame, application origin and folder allowlist. There is no generic IPC or filesystem bridge. This supersedes the earlier description of having no preload/IPC. Native menu and traffic-light interaction on the user's laptop still needs confirmation after restarting this updated source.
+
+## alpha.3 mailbox navigation and account menus
+Work/Personal category sections are removed. Inboxes are identified by email address, with shared Sent, Projects, Archive, Junk and Deleted Items listed directly. All Inboxes remains available. The addresses are synthetic fixtures, not real connected accounts.
+
+File → Add Account and Accounts are available in the native OS menu and in an always-visible in-window menu row. macOS also has Made Mail → Accounts. The entries open an honest account status dialog: OAuth/IMAP connection and credential storage are not implemented and no sign-in credentials are requested. Native commands use a one-way allowlisted preload event; no generic renderer-to-main account IPC exists. Browser checks verified the File entry opens the account dialog.

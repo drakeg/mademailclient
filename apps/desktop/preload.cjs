@@ -1,6 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('desktopMail', {
   isDesktop: true,
+  onAccountsCommand: callback => {
+    if (typeof callback !== 'function') return;
+    const listener = (_event, mode) => { if (['add','manage'].includes(mode)) callback(mode); };
+    ipcRenderer.on('accounts:open', listener);
+    return () => ipcRenderer.removeListener('accounts:open', listener);
+  },
   chooseMailboxAction: folder => {
     if (!['junk', 'trash'].includes(folder)) return Promise.reject(new Error('Unsupported mailbox'));
     return ipcRenderer.invoke('mailbox:context-menu', folder);

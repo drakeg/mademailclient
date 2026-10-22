@@ -1,5 +1,5 @@
 // Electron roles delegate standard commands and keyboard shortcuts to the OS.
-function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, restoreWindow = () => {} }) {
+function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, restoreWindow = () => {}, accountsCommand = () => {} }) {
   const mac = platform === 'darwin';
   const edit = [
     { role: 'undo' }, { role: 'redo' }, { type: 'separator' },
@@ -9,8 +9,11 @@ function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, re
     ...(mac ? [{ type: 'separator' }, { label: 'Speech', submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }] }] : []),
   ];
   return [
-    ...(mac ? [{ role: 'appMenu' }] : []),
+    ...(mac ? [{ label: 'Made Mail', submenu: [{role:'about'},{type:'separator'},{label:'Accounts…',click:()=>accountsCommand('manage')},{type:'separator'},{role:'services'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{role:'quit'}] }] : []),
     { label: mac ? 'File' : '&File', submenu: [
+      { label: 'Add Account…', click: () => accountsCommand('add') },
+      { label: 'Accounts…', click: () => accountsCommand('manage') },
+      { type: 'separator' },
       { role: 'close' },
       ...(!mac ? [{ type: 'separator' }, { role: 'quit', label: 'E&xit' }] : []),
     ] },
