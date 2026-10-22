@@ -1,0 +1,34 @@
+name: Publish requested alpha downloads
+on:
+  push:
+    branches: [release/downloadable-alpha]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: v0.1.0-alpha.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify existing candidate and checksums
+        shell: bash
+        run: |
+          gh release view "$RELEASE_TAG" --json tagName,isPrerelease,assets > candidate.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('candidate.json'))
+          expected={'Made-Mail-0.1.0-alpha.1-mac-arm64.dmg','Made-Mail-0.1.0-alpha.1-mac-x64.dmg','Made-Mail-0.1.0-alpha.1-win-x64.exe','SHA256SUMS.txt'}
+          assert r['tagName']=='v0.1.0-alpha.1' and r['isPrerelease']
+          assert {a['name'] for a in r['assets']}==expected, 'Unexpected release assets'
+          PY
+          mkdir verified-assets
+          gh release download "$RELEASE_TAG" --dir verified-assets
+          cd verified-assets
+          sha256sum --check SHA256SUMS.txt
+      - name: Publish experimental prerelease requested by repository owner
+        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false --notes-file docs/releases/alpha-notes.md

@@ -1,6 +1,6 @@
 # v0.1.0-alpha.1 acceptance record
 
-Status: NOT APPROVED FOR PUBLICATION. Do not convert pending checks into passes.
+Status: experimental prerelease publication authorized by repository owner for sample-mail testing. Not approved for normal use. Pending checks remain pending.
 
 | Target | Build | Packaged smoke | Native menus | Install/uninstall | OS trust/signing | Upgrade |
 |---|---|---|---|---|---|---|
