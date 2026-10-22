@@ -65,3 +65,6 @@ Track iteration completion versus commitment, escaped defects, blocked time, syn
 ## Alpha release pipeline progress
 
 Release automation now builds Mac arm64, Mac x64 and Windows x64 on matching GitHub runners, performs packaged-app smoke tests and creates draft alpha releases with checksums only after all targets pass. Initial platform validation passed: https://github.com/drakeg/mademailclient/actions/runs/39837289663 . Native menu interaction, installer acceptance and trusted signing remain open gates; see releases/alpha-acceptance.md and TESTING.md. No public release is approved by these automated checks alone.
+
+## Desktop usability follow-up
+alpha.2 adds explicit native window framing and recovery, a Mailbox menu, context actions for Junk/Deleted Items and counted confirmations. Browser manual checks verified right-click action selection and cancel preserving messages. Unit tests cover folder scope, IPC rejection and menu dispatch; native interactions still need platform verification. No alpha.2 installer release has been published.

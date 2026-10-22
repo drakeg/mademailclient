@@ -12,7 +12,15 @@ test('Mac delegates application and window menus to native roles', () => {
 });
 test('Windows has mnemonics, File Exit, Help About and no Mac menus', () => {
   const menu = createMenuTemplate('win32', options);
-  assert.deepEqual(menu.map(item => item.label), ['&File', '&Edit', '&View', '&Help']);
+  assert.deepEqual(menu.map(item => item.label), ['&File', '&Edit', '&View', '&Mailbox', '&Help']);
   assert.ok(menu[0].submenu.some(item => item.role === 'quit'));
   assert.equal(menu.at(-1).submenu[0].click, options.showAbout);
+});
+
+test('native Mailbox actions select only their intended folder and View exposes window recovery',()=>{
+ const commands=[];let restored=false;
+ const menu=createMenuTemplate('darwin',{...options,mailboxCommand:folder=>commands.push(folder),restoreWindow:()=>{restored=true;}});
+ const mailbox=menu.find(item=>item.label==='Mailbox');mailbox.submenu.forEach(item=>item.click());
+ assert.deepEqual(commands,['junk','trash']);
+ menu.find(item=>item.label==='View').submenu.find(item=>item.label==='Restore Standard Window').click();assert.equal(restored,true);
 });

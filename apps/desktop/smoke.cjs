@@ -8,11 +8,13 @@ function attachSmokeTest(app, window, Menu) {
     try {
       const prefs = window.webContents.getLastWebPreferences();
       if (!prefs.sandbox || !prefs.contextIsolation || prefs.nodeIntegration) throw new Error('Unsafe renderer preferences');
+      if (!window.isClosable() || !window.isMinimizable() || !window.isMaximizable() || window.isFullScreen()) throw new Error('Native window controls unavailable');
       if (!Menu.getApplicationMenu()) throw new Error('Native application menu missing');
       const result = await window.webContents.executeJavaScript(`(async () => {
         const assert = (ok, message) => { if (!ok) throw new Error(message); };
         const wait = async (test) => { for (let n=0; n<100; n++) { if(test()) return; await new Promise(r=>setTimeout(r,50)); } throw new Error('Interface did not initialize'); };
         await wait(()=>document.querySelectorAll('.message').length===7);
+        assert(window.desktopMail?.isDesktop === true,'Desktop preload bridge');
         assert(document.querySelector('#mailbox-title').textContent==='All inboxes','Unified inbox title');
         document.querySelector('[data-view="personal"]').click();
         assert(document.querySelectorAll('.message').length===3,'Personal account filter');

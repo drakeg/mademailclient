@@ -1,5 +1,5 @@
 // Electron roles delegate standard commands and keyboard shortcuts to the OS.
-function createMenuTemplate(platform, { showAbout }) {
+function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, restoreWindow = () => {} }) {
   const mac = platform === 'darwin';
   const edit = [
     { role: 'undo' }, { role: 'redo' }, { type: 'separator' },
@@ -18,6 +18,11 @@ function createMenuTemplate(platform, { showAbout }) {
     { label: mac ? 'View' : '&View', submenu: [
       { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
       { type: 'separator' }, { role: 'togglefullscreen' },
+      { label: 'Restore Standard Window', accelerator: 'CmdOrCtrl+0', click: restoreWindow },
+    ] },
+    { label: mac ? 'Mailbox' : '&Mailbox', submenu: [
+      { label: 'Empty Junk…', click: () => mailboxCommand('junk') },
+      { label: 'Empty Deleted Items…', click: () => mailboxCommand('trash') },
     ] },
     ...(mac ? [{ role: 'windowMenu' }] : []),
     { role: 'help', label: mac ? 'Help' : '&Help', submenu: [

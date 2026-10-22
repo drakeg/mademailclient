@@ -29,3 +29,10 @@ Desktop menus use Electron's native OS menu roles rather than HTML imitations. m
 The shared renderer now uses a compact three-pane inbox, account/folder navigation, date-grouped rows, unread/flag indicators, density control, and a modal rules preview. Archive/Junk/Deleted Items and read/flag actions affect synthetic messages in memory only. Browser checks verified account filtering, search, empty states and rule matches. Native menu integration has automated platform-template tests; OS interaction acceptance remains pending.
 
 Design references: https://support.apple.com/guide/mail/welcome/mac and https://support.microsoft.com/en-us/outlook/mail/change-how-the-message-list-is-displayed-in-outlook . Menu roles: https://www.electronjs.org/docs/latest/tutorial/application-menu .
+
+## alpha.2 window and mailbox update
+The desktop window explicitly requests the standard OS frame/title bar, visible Mac traffic lights, normal (not full-screen) startup, and a regular macOS application menu. View → Restore Standard Window (Command+0 on Mac, Ctrl+0 on Windows) exits full screen and restores window controls. Mac application menus are in the system menu bar at the top of the screen.
+
+Mailbox → Empty Junk / Empty Deleted Items and right-click mailbox menus now open a confirmation showing the count and scope across the sample accounts. The mailbox also has a visible Empty button. Cancel/Escape leaves messages untouched; only the selected Junk or Deleted Items folder is emptied after confirmation, ignoring search filters. These are in-memory fictional messages, not provider operations.
+
+A narrowly scoped preload bridge exposes only mailbox menu requests and fixed mailbox commands. Main-process requests validate the originating window, main frame, application origin and folder allowlist. There is no generic IPC or filesystem bridge. This supersedes the earlier description of having no preload/IPC. Native menu and traffic-light interaction on the user's laptop still needs confirmation after restarting this updated source.
