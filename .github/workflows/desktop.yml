@@ -47,6 +47,16 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Launch packaged app and exercise synthetic inbox
         run: pnpm desktop:smoke "${{ matrix.executable }}"
+      - name: Require trusted Mac distribution before creating any release
+        if: matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          APP_EXECUTABLE: ${{ matrix.executable }}
+        run: |
+          app_bundle="${APP_EXECUTABLE%/Contents/MacOS/*}"
+          codesign --verify --deep --strict --verbose=2 "$app_bundle"
+          xcrun stapler validate "$app_bundle"
+          spctl --assess --type execute --verbose=4 "$app_bundle"
       - uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.platform }}-${{ matrix.arch }}
