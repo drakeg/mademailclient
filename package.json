@@ -1,1 +1,68 @@
-{"name":"mademailclient","version":"0.1.0","private":true,"type":"module","engines":{"node":">=22"},"scripts":{"dev":"node server.mjs","test":"node --test","check":"node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs"}}
+{
+  "name": "mademailclient",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node server.mjs",
+    "test": "node --test",
+    "check": "node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs && node --check apps/desktop/main.cjs && node --check apps/desktop/assets.cjs",
+    "desktop": "electron .",
+    "desktop:pack": "electron-builder --dir",
+    "desktop:mac": "electron-builder --mac",
+    "desktop:win": "electron-builder --win"
+  },
+  "main": "apps/desktop/main.cjs",
+  "description": "Made Mail desktop email client prototype",
+  "author": "Made Mail contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.mademailclient.desktop",
+    "productName": "Made Mail",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "apps/desktop/**",
+      "apps/web/**",
+      "packages/core/**",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

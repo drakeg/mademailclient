@@ -3,9 +3,13 @@
 An open-source email client bringing existing accounts into one workspace, inspired by familiar Outlook and Apple Mail workflows.
 
 ## Status
-Foundation prototype, not a production email client. The browser demo displays fictional messages, supports unified/account inboxes and search, and previews rules. It does not connect accounts, persist rules, send mail, execute actions, or run background jobs. No desktop installers exist yet.
+Foundation prototype, not a production email client. The browser demo displays fictional messages, supports unified/account inboxes and search, and previews rules. It does not connect accounts, persist rules, send mail, execute actions, or run background jobs. Desktop packaging now targets Mac DMG and Windows setup EXE; see [desktop setup](docs/DESKTOP.md). Installer signing and platform acceptance testing remain pending.
 
-## Run locally
+## Installable desktop apps (primary delivery)
+
+See [desktop setup and installer builds](docs/DESKTOP.md). Mac and Windows desktop apps take priority; hosted web delivery follows later. Both use bundled interface assets without requiring a running web server.
+
+## Run the browser prototype locally
 Requires Node.js 22 or newer. No external packages or credentials are required.
 
 ```sh

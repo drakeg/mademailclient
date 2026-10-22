@@ -17,3 +17,6 @@ Backend: encrypted credentials, tenant isolation tests, idempotent job tests, ba
 
 ## Deployment and rollback
 Not available yet. Before enabling delivery, record hosting target, operator owner, artifact/version identifiers, environment variables, health checks, migration sequence, promotion approval, and rollback commands in an operator runbook. Roll back to a known artifact only after checking schema compatibility. Pause workers before investigating repeated destructive actions. Do not claim a deploy succeeded without a reachable smoke test.
+
+## Desktop prototype builds (implemented)
+See `.github/workflows/desktop.yml` and docs/DESKTOP.md. Mac and Windows runners install exact locked dependencies, run checks/tests and upload unsigned DMG/EXE artifacts. These jobs do not publish releases. Signing, notarization and native install/upgrade smoke tests remain release gates.

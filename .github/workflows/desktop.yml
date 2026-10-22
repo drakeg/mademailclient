@@ -1,0 +1,42 @@
+name: Desktop installers
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/desktop-apps]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            command: desktop:mac
+            artifact: mac-installers
+            glob: dist/*.dmg
+          - os: windows-latest
+            command: desktop:win
+            artifact: windows-installer
+            glob: dist/*.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm test
+      - run: pnpm run ${{ matrix.command }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.glob }}
+          if-no-files-found: error

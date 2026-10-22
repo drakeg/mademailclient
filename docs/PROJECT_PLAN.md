@@ -3,6 +3,16 @@
 ## Product goal and scope
 One client for existing personal/work email across Mac, Windows and web, with unified/account inboxes and understandable Outlook-style rules. No mailbox hosting, calendar, contacts, tasks, or new addresses in the first release. Provider coverage is incremental and subject to provider consent and organizational policies.
 
+## Priority correction: desktop first
+
+Mac and Windows installable apps are the primary deliverables. Hosted web access follows desktop alpha. Shared browser UI work supports the desktop renderer; it is not the first release channel. Initial sequencing below is superseded by: desktop packaging → native install/launch acceptance → first-provider desktop alpha → rules and multi-account desktop beta → signed desktop release → hosted web.
+
+| ID | Immediate desktop story | Acceptance | Status |
+|---|---|---|---|
+| X00 | Bundled desktop shell and DMG/EXE builds | No server needed; sandboxed renderer; Mac/Windows artifact workflow | Implemented; build validation in progress |
+| X02 | Native installer acceptance | Install, launch, close/reopen, uninstall on Mac Intel/ARM and Windows x64 | Next |
+| X03 | Trusted distribution | Signed Windows app, signed/notarized Mac app, verified update strategy | Backlog |
+
 ## Delivery process
 Use two-week iterations as planning units, not date commitments. The repository owner initially acts as product owner and maintainer; contributors volunteer for stories during planning. No team capacity or delivery date is assumed. Product owner prioritizes; implementer estimates; a maintainer other than the implementer reviews when available.
 
@@ -34,18 +44,18 @@ Points are rough relative estimates (1, 2, 3, 5, 8); split larger stories after 
 | R05 | Retroactive rules and audit | P1 / 5 | R02,R03,R04 | Preview snapshot, scoped run, progress/cancel, per-message explanation and retry-safe outcomes | Backlog |
 | P01 | Additional providers | P1 / 8 each | D01,S01,R02 | Repeat connection/sync/action contract suite for Microsoft, Gmail and IMAP/SMTP; document unsupported capabilities | Backlog |
 | H01 | Hosted and self-hosted beta | P1 / 8 | A01,S01,R05 | Deployment runbook, secrets, migration, backups/restore, retention/deletion, observability and staging recovery rehearsal | Backlog |
-| X01 | Mac and Windows shells | P1 / 8 | D02,U02 | Signed/notarized installation where applicable, secure auth handoff, credential storage, update checks and installer smoke tests | Backlog |
+| X01 | Mac and Windows shells | P1 / 8 | D02,U02 | Builds established in X00; signing/notarization, secure auth handoff, credential storage, update checks and installer smoke tests pending | Backlog |
 | Q01 | Release hardening | P1 / 8 | H01,X01,P01 | Keyboard/screen-reader testing, safe HTML/attachments, security review, performance budgets and full account lifecycle acceptance | Backlog |
 | O01 | Offline cache and queued actions | P2 / 8 | X01,Q01 | Encryption, cache purge, conflict and reconnect semantics documented/tested before mutations | Backlog |
 
 ## Iteration goals and milestones
 - Iteration 0, foundation: F01–F03; delivered locally for review. Exit: CI verified on GitHub and maintainer review.
-- Iteration 1, decisions: D01–D02 and refine/split A01–A02. Exit: provider matrix and accepted architecture decisions.
-- Subsequent iterations: identity/connection → sync/live inbox → compose/rules → safe execution/audit → provider breadth → hosting/desktop → hardening. Select stories within actual capacity; no promise that each group fits one iteration.
+- Iteration 1, desktop priority: X00–X02, then D01–D02 and refine/split A01–A02. Exit: provider matrix and accepted architecture decisions.
+- Subsequent iterations: identity/connection → sync/live inbox → compose/rules → safe execution/audit → provider breadth → desktop hardening → hosted web. Select stories within actual capacity; no promise that each group fits one iteration.
 - M1: contributor prototype (F01–F03 reviewed).
 - M2: one-provider private alpha (A01–A02,S01,U01,U02,R01–R05).
-- M3: multi-provider web beta (P01,H01 plus security gates).
-- M4: cross-platform public beta (X01,Q01); offline follows separately.
+- M3: multi-provider desktop beta (P01,X01 plus security gates).
+- M4: trusted desktop release, then hosted web beta (H01); offline follows separately.
 
 ## Risks and validation
 Provider limits and organizational consent may restrict accounts: validate in D01 before committing support. Duplicate events can cause destructive repeats: durable idempotency and ambiguous-outcome tests block execution release. Token compromise and tenant leaks block alpha. Desktop signing and hosting costs need owner decisions before distribution. Large mailbox performance requires a synthetic benchmark and agreed budget during S01 refinement.
