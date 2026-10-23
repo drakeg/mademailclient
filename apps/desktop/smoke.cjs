@@ -15,6 +15,12 @@ function attachSmokeTest(app, window, Menu) {
         const wait = async (test) => { for (let n=0; n<100; n++) { if(test()) return; await new Promise(r=>setTimeout(r,50)); } throw new Error('Interface did not initialize'); };
         await wait(()=>document.querySelectorAll('.message').length===7);
         assert(window.desktopMail?.isDesktop === true,'Desktop preload bridge');
+        assert(getComputedStyle(document.querySelector('.window-menu')).display==='none','No duplicated desktop menu');
+        document.querySelector('#tab-view').click();document.querySelector('#layout-columns').click();
+        assert(document.body.dataset.mailLayout==='columns','Column layout selection');
+        assert(getComputedStyle(document.querySelector('.reading-pane')).display==='none','Column layout hides reader');
+        document.querySelector('#layout-preview').click();document.querySelector('#tab-home').click();
+        assert(getComputedStyle(document.querySelector('.reading-pane')).display!=='none','Reading pane restored');
         assert(document.querySelector('#mailbox-title').textContent==='All inboxes','Unified inbox title');
         document.querySelector('[data-view="personal"]').click();
         assert(document.querySelectorAll('.message').length===3,'Personal account filter');
@@ -29,7 +35,7 @@ function attachSmokeTest(app, window, Menu) {
         rules.querySelector('form').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
         assert(document.querySelector('#preview').textContent.includes('1 matching inbox message'),'Rules preview');
         rules.close();
-        return {title:document.title, checks:7};
+        return {title:document.title, checks:11};
       })()`);
       console.log('DESKTOP_SMOKE_OK', JSON.stringify({ platform:process.platform, arch:process.arch, ...result }));
       clearTimeout(timeout); app.exit(0);

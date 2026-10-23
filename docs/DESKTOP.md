@@ -44,3 +44,10 @@ File → Add Account and Accounts are available in the native OS menu and in an 
 
 ## Native menu convention correction
 Electron now hides the HTML menu row entirely, leaving macOS's system menu bar or Windows's native per-window menu. The HTML row is only for browser use. macOS keeps About, Settings (Command-comma), Accounts, Add Account, Services, Hide and Quit in the Made Mail application menu; Windows keeps account setup/settings in File and About in Help. Settings currently opens the Accounts preview because real account configuration is not implemented. The app retains standard native window controls. This supersedes alpha.3's duplicate in-window desktop menu.
+
+## Screenshot reference layout (alpha.4)
+The supplied Outlook screenshot guides the default interface: gray search/title area, Home/View/Help command ribbon, email-address folder trees, denser avatar/sender/subject/date rows, and a right reading pane. The supplied Apple Mail screenshot guides View → Column view: compact From/Subject/Received rows with blue selection and no reading pane. View → Reading pane restores the Outlook-style layout. The native OS menu remains separate and the browser-only menu row remains hidden in Electron. This supersedes alpha.3's flat shared folder list in favor of the newly requested Outlook account-folder structure; no Work/Personal category labels are displayed.
+
+Commands for sample archive/delete/junk/read/flag and rules are wired. New mail/reply/forward stay disabled because sending is not implemented. Account setup remains a preview notice, not a working OAuth flow. Emptying an account's Junk/Deleted Items is scoped to that account; native Mailbox menu commands still apply across sample accounts and the confirmation explains scope.
+
+Browser visual checks verified both layouts, ribbon navigation and reading-pane restoration. Packaged smoke checks cover the desktop bridge, native-menu duplication prevention and layout switching; platform-native appearance remains subject to manual acceptance.

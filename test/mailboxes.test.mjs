@@ -18,3 +18,9 @@ test('native mailbox bridge rejects foreign windows, frames, origins and mailbox
  assert.equal(validMailboxRequest({...event,senderFrame:{url:'mademail://app/'}},contents,'junk'),false);
  frame.url='https://example.com';assert.equal(validMailboxRequest(event,contents,'junk'),false);
 });
+test('emptying one account mailbox preserves the same folder in other accounts',()=>{
+ const mail=[{id:'a',folder:'junk',accountId:'work'},{id:'b',folder:'junk',accountId:'personal'},{id:'c',folder:'inbox',accountId:'work'}];
+ assert.deepEqual(emptyMailbox(mail,'junk','work').map(m=>m.id),['b','c']);
+ assert.deepEqual(emptyMailbox(mail,'junk','personal').map(m=>m.id),['a','c']);
+ assert.deepEqual(emptyMailbox(mail,'junk','unknown'),mail);
+});

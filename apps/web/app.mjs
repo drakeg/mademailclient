@@ -2,26 +2,30 @@ document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'deskto
 import { planRules, validateRule } from '/packages/core/rules.mjs';
 import { emptyMailbox } from '/packages/core/mailboxes.mjs';
 let messages = [
-{id:'1',accountId:'work',from:'Morgan Chen',email:'morgan@studio.example',to:'you@work.example',subject:'Brand direction — ready for your thoughts',body:'Hi there,\n\nI’ve pulled together the updated brand direction following our conversation on Monday. The new approach gives us a little more room to work with, while keeping the clarity we liked in the original.\n\nA few things to look at:\n\n• A simpler visual system across desktop and mobile\n• Warmer photography and a more considered color palette\n• A clearer hierarchy for the things that matter most\n\nWould love to hear what you think before we share it with the wider team on Friday. No rush today — tomorrow morning works well.\n\nThanks,\nMorgan\nDesign team',unread:true,time:'10:42 AM',date:'Today',folder:'inbox'},
-{id:'3',accountId:'work',from:'Studio billing',email:'billing@studio.example',to:'you@work.example',subject:'Your October invoice',body:'Hello,\n\nYour October invoice is ready for review. You’ll find a summary attached.\n\nThank you for being part of the studio. If you have any questions, just reply to this email.\n\nBest,\nThe Studio team',hasAttachment:true,attachment:'October-invoice.pdf',unread:true,time:'9:18 AM',date:'Today',folder:'inbox'},
-{id:'4',accountId:'personal',from:'Alex Rivera',email:'alex@friends.example',to:'you@personal.example',subject:'Dinner next week?',body:'Hey!\n\nLet’s find an evening for dinner next week. Tuesday or Thursday? There’s a new place on the corner I’ve been meaning to try.\n\nHope your week is going well.\nAlex',unread:true,time:'8:54 AM',date:'Today',folder:'inbox'},
-{id:'5',accountId:'work',from:'Priya Shah',email:'priya@studio.example',to:'you@work.example',subject:'A few notes from our planning session',body:'Hi,\n\nThanks for a productive planning session. I’ve captured our next steps:\n\n1. Review the desktop prototype\n2. Confirm the account connection flow\n3. Share feedback with the team\n\nLet’s reconnect next week.\nPriya',flagged:true,time:'8:30 AM',date:'Today',folder:'inbox'},
-{id:'2',accountId:'personal',from:'The neighborhood garden',email:'hello@garden.example',to:'you@personal.example',subject:'Saturday in the garden',body:'Hello neighbors,\n\nJoin us Saturday morning to plant the autumn beds. Bring a warm layer and a friend. Coffee will be ready at 9.\n\nSee you there,\nThe garden team',time:'Yesterday',date:'Yesterday',folder:'inbox'},
-{id:'6',accountId:'work',from:'Daniel Park',email:'daniel@studio.example',to:'you@work.example',subject:'Re: Project timeline',body:'The revised timeline looks good to me. Thanks for making room for another round of feedback.\n\nDaniel',time:'Yesterday',date:'Yesterday',folder:'inbox'},
-{id:'7',accountId:'personal',from:'Weekend reads',email:'editor@reading.example',to:'you@personal.example',subject:'Something worth slowing down for',body:'This week’s reading list is about making space: for good ideas, long walks, and conversations that go somewhere.\n\nEnjoy your weekend.',time:'Yesterday',date:'Yesterday',folder:'inbox'},
-{id:'8',accountId:'work',from:'You',email:'you@work.example',to:'morgan@studio.example',subject:'Re: Kickoff notes',body:'Thanks Morgan. Looking forward to reviewing the next iteration.',time:'Yesterday',date:'Yesterday',folder:'sent'},
-{id:'9',accountId:'personal',from:'You',email:'you@personal.example',to:'alex@friends.example',subject:'Photos from the weekend',body:'Such a good weekend. Let’s do it again soon!',time:'Monday',date:'Earlier',folder:'sent'},
-{id:'10',accountId:'work',from:'Project team',email:'team@studio.example',to:'you@work.example',subject:'Project resources',body:'Here are the reference notes for the upcoming project.',time:'Monday',date:'Earlier',folder:'projects'}];
+{id:'1',accountId:'work',from:'Morgan Chen',email:'morgan@studio.example',to:'alex@northstar.example',subject:'Brand direction — ready for your thoughts',body:'Hi there,\n\nI’ve pulled together the updated brand direction following our conversation on Monday. The new approach gives us a little more room to work with, while keeping the clarity we liked in the original.\n\nA few things to look at:\n\n• A simpler visual system across desktop and mobile\n• Warmer photography and a more considered color palette\n• A clearer hierarchy for the things that matter most\n\nWould love to hear what you think before we share it with the wider team on Friday. No rush today — tomorrow morning works well.\n\nThanks,\nMorgan\nDesign team',unread:true,time:'10:42 AM',date:'Today',folder:'inbox'},
+{id:'3',accountId:'work',from:'Studio billing',email:'billing@studio.example',to:'alex@northstar.example',subject:'Your October invoice',body:'Hello,\n\nYour October invoice is ready for review. You’ll find a summary attached.\n\nThank you for being part of the studio. If you have any questions, just reply to this email.\n\nBest,\nThe Studio team',hasAttachment:true,attachment:'October-invoice.pdf',unread:true,time:'9:18 AM',date:'Today',folder:'inbox'},
+{id:'4',accountId:'personal',from:'Alex Rivera',email:'alex@friends.example',to:'alex@icloud.example',subject:'Dinner next week?',body:'Hey!\n\nLet’s find an evening for dinner next week. Tuesday or Thursday? There’s a new place on the corner I’ve been meaning to try.\n\nHope your week is going well.\nAlex',unread:true,time:'8:54 AM',date:'Today',folder:'inbox'},
+{id:'5',accountId:'work',from:'Priya Shah',email:'priya@studio.example',to:'alex@northstar.example',subject:'A few notes from our planning session',body:'Hi,\n\nThanks for a productive planning session. I’ve captured our next steps:\n\n1. Review the desktop prototype\n2. Confirm the account connection flow\n3. Share feedback with the team\n\nLet’s reconnect next week.\nPriya',flagged:true,time:'8:30 AM',date:'Today',folder:'inbox'},
+{id:'2',accountId:'personal',from:'The neighborhood garden',email:'hello@garden.example',to:'alex@icloud.example',subject:'Saturday in the garden',body:'Hello neighbors,\n\nJoin us Saturday morning to plant the autumn beds. Bring a warm layer and a friend. Coffee will be ready at 9.\n\nSee you there,\nThe garden team',time:'Yesterday',date:'Yesterday',folder:'inbox'},
+{id:'6',accountId:'work',from:'Daniel Park',email:'daniel@studio.example',to:'alex@northstar.example',subject:'Re: Project timeline',body:'The revised timeline looks good to me. Thanks for making room for another round of feedback.\n\nDaniel',time:'Yesterday',date:'Yesterday',folder:'inbox'},
+{id:'7',accountId:'personal',from:'Weekend reads',email:'editor@reading.example',to:'alex@icloud.example',subject:'Something worth slowing down for',body:'This week’s reading list is about making space: for good ideas, long walks, and conversations that go somewhere.\n\nEnjoy your weekend.',time:'Yesterday',date:'Yesterday',folder:'inbox'},
+{id:'8',accountId:'work',from:'You',email:'alex@northstar.example',to:'morgan@studio.example',subject:'Re: Kickoff notes',body:'Thanks Morgan. Looking forward to reviewing the next iteration.',time:'Yesterday',date:'Yesterday',folder:'sent'},
+{id:'9',accountId:'personal',from:'You',email:'alex@icloud.example',to:'alex@friends.example',subject:'Photos from the weekend',body:'Such a good weekend. Let’s do it again soon!',time:'Monday',date:'Earlier',folder:'sent'},
+{id:'10',accountId:'work',from:'Project team',email:'team@studio.example',to:'alex@northstar.example',subject:'Project resources',body:'Here are the reference notes for the upcoming project.',time:'Monday',date:'Earlier',folder:'projects'}];
 messages.push(
- {id:'junk1',accountId:'personal',from:'Sample promotions',email:'offers@example.invalid',to:'you@personal.example',subject:'A sample junk message',body:'Fictional mail for testing Empty Junk.',time:'Yesterday',date:'Yesterday',folder:'junk'},
- {id:'trash1',accountId:'work',from:'Sample notification',email:'notice@example.invalid',to:'you@work.example',subject:'A sample deleted message',body:'Fictional mail for testing Empty Deleted Items.',time:'Yesterday',date:'Yesterday',folder:'trash'}
+ {id:'junk1',accountId:'personal',from:'Sample promotions',email:'offers@example.invalid',to:'alex@icloud.example',subject:'A sample junk message',body:'Fictional mail for testing Empty Junk.',time:'Yesterday',date:'Yesterday',folder:'junk'},
+ {id:'trash1',accountId:'work',from:'Sample notification',email:'notice@example.invalid',to:'alex@northstar.example',subject:'A sample deleted message',body:'Fictional mail for testing Empty Deleted Items.',time:'Yesterday',date:'Yesterday',folder:'trash'}
 );
 let view='inbox', unreadOnly=false, selectedId='1', noticeTimer;
 const el=id=>document.getElementById(id);
 const text=(tag,value,parent,className)=>{const n=document.createElement(tag);n.textContent=value;if(className)n.className=className;parent.append(n);return n;};
 const icon=(name,parent)=>{const n=document.createElementNS('http://www.w3.org/2000/svg','svg');n.setAttribute('class','icon');n.setAttribute('aria-hidden','true');const use=document.createElementNS(n.namespaceURI,'use');use.setAttribute('href',`#i-${name}`);n.append(use);parent.append(n);return n;};
-const names={inbox:'All inboxes',work:'you@work.example',personal:'you@personal.example',sent:'Sent',projects:'Projects',unread:'Unread',flagged:'Flagged',archive:'Archive',junk:'Junk',trash:'Deleted items','work:sent':'Work · Sent','personal:sent':'Personal · Sent','work:projects':'Work · Projects'};
-const accountName=id=>id==='work'?'you@work.example':'you@personal.example';
+const names={inbox:'All inboxes',work:'alex@northstar.example',personal:'alex@icloud.example',sent:'Sent',projects:'Projects',unread:'Unread',flagged:'Flagged',archive:'Archive',junk:'Junk',trash:'Deleted items','work:sent':'Work · Sent','personal:sent':'Personal · Sent','work:projects':'Work · Projects'};
+const accountName=id=>id==='work'?'alex@northstar.example':'alex@icloud.example';
+const folderNames={inbox:'Inbox',drafts:'Drafts',sent:'Sent Items',trash:'Deleted Items',junk:'Junk Email',archive:'Archive',projects:'Projects'};
+for(const account of ['work','personal'])for(const folder of Object.keys(folderNames))names[`${account}:${folder}`]=`${accountName(account)} · ${folderNames[folder]}`;
+function mailboxScope(target=view){if(target.includes(':')){const [accountId,folder]=target.split(':');return {folder,accountId};}return ['work','personal'].includes(target)?{folder:'inbox',accountId:target}:{folder:target};}
+
 function inView(m,target=view){
  if(target==='work'||target==='personal')return m.accountId===target&&m.folder==='inbox';
  if(target.includes(':')){const [account,folder]=target.split(':');return m.accountId===account&&m.folder===folder;}
@@ -42,17 +46,17 @@ function renderReader(visible){
  text('div',m.body,el('reader'),'message-body');
  if(m.hasAttachment){const attachment=text('div','',el('reader'),'attachment');icon('paperclip',attachment);const info=text('div','',attachment);text('strong',m.attachment,info);text('small','Sample attachment · preview only',info);}
  const replies=text('div','',el('reader'),'reply-buttons');for(const [name,label] of [['reply','Reply'],['forward','Forward']]){const b=text('button','',replies);icon(name,b);text('span',label,b);b.disabled=true;b.title='Sending is coming with account connections';}
- document.querySelector('[data-action="flag"]').setAttribute('aria-pressed',String(!!m.flagged));
- document.querySelector('[data-action="unread"]').setAttribute('aria-pressed',String(!!m.unread));
+ document.querySelectorAll('[data-action="flag"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.flagged)));
+ document.querySelectorAll('[data-action="unread"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.unread)));
 }
 function render(){
  const visible=visibleMessages();if(!visible.some(m=>m.id===selectedId))selectedId=visible[0]?.id;
  el('mailbox-title').textContent=names[view];el('mailbox-summary').textContent=`${visible.length} message${visible.length===1?'':'s'} · ${visible.filter(m=>m.unread).length} unread`;
  el('messages').replaceChildren();let group;
- for(const m of visible){if(group!==m.date){group=m.date;text('div',group,el('messages'),'date-heading');}const b=text('button','',el('messages'),`message${m.unread?' unread':''}${selectedId===m.id?' selected':''}`);b.setAttribute('aria-pressed',String(selectedId===m.id));b.setAttribute('aria-label',`${m.from}: ${m.subject}, ${m.time}, ${accountName(m.accountId)}${m.unread?', unread':''}`);if(m.unread)text('span','',b,'unread-dot');const row=text('div','',b,'message-top');text('span',m.from,row,'sender');text('time',m.time,row);text('span',m.subject,b,'subject');text('span',m.body.replaceAll('\n',' '),b,'snippet');const meta=text('div','',b,'message-meta');text('i','',meta,`account-dot ${m.accountId}`);text('span',accountName(m.accountId),meta);if(m.hasAttachment)icon('paperclip',meta);if(m.flagged)icon('flag',meta);b.onclick=()=>{selectedId=m.id;render();};}
+ for(const m of visible){if(group!==m.date){group=m.date;text('div',group,el('messages'),'date-heading');}const b=text('button','',el('messages'),`message${m.unread?' unread':''}${selectedId===m.id?' selected':''}`);b.setAttribute('aria-pressed',String(selectedId===m.id));b.setAttribute('aria-label',`${m.from}: ${m.subject}, ${m.time}, ${accountName(m.accountId)}${m.unread?', unread':''}`);if(m.unread)text('span','',b,'unread-dot');text('span',m.from.split(' ').slice(0,2).map(w=>w[0].toUpperCase()).join(''),b,'message-avatar');const row=text('div','',b,'message-top');text('span',m.from,row,'sender');text('time',m.time,row);text('span',m.subject,b,'subject');text('span',m.body.replaceAll('\n',' '),b,'snippet');const meta=text('div','',b,'message-meta');text('i','',meta,`account-dot ${m.accountId}`);text('span',accountName(m.accountId),meta);if(m.hasAttachment)icon('paperclip',meta);if(m.flagged)icon('flag',meta);b.onclick=()=>{selectedId=m.id;render();};}
  if(!visible.length){const empty=text('div','',el('messages'),'empty-state');icon('inbox',empty);text('p','No messages here.',empty);}
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-current',b.dataset.view===view?'page':'false');});
- document.querySelectorAll('[data-count]').forEach(n=>{const count=messages.filter(m=>inView(m,n.dataset.count)&&(['flagged','junk','trash'].includes(n.dataset.count)||m.unread)).length;n.textContent=count||'';});el('empty-folder').hidden=!['junk','trash'].includes(view);el('empty-folder').textContent=view==='junk'?'Empty Junk…':'Empty Deleted Items…';renderReader(visible);
+ document.querySelectorAll('[data-count]').forEach(n=>{const count=messages.filter(m=>inView(m,n.dataset.count)&&(['flagged','junk','trash'].includes(n.dataset.count)||m.unread)).length;n.textContent=count||'';});el('empty-folder').hidden=!['junk','trash'].includes(mailboxScope().folder);el('empty-folder').textContent=mailboxScope().folder==='junk'?'Empty Junk…':'Empty Deleted Items…';renderReader(visible);
 }
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;selectedId=null;render();});
 el('search').oninput=render;
@@ -66,25 +70,25 @@ render();
 
 let pendingFolder = null;
 const mailboxLabel = folder => folder === 'junk' ? 'Junk' : 'Deleted Items';
-function requestEmpty(folder) {
+function requestEmpty(folder, accountId) {
  if (!['junk','trash'].includes(folder)) return;
- const count=messages.filter(m=>m.folder===folder).length;
+ const count=messages.filter(m=>m.folder===folder&&(!accountId||m.accountId===accountId)).length;
  if(!count){notice(`${mailboxLabel(folder)} is already empty.`);return;}
- pendingFolder=folder;
+ pendingFolder={folder,accountId};
  el('empty-title').textContent=`Empty ${mailboxLabel(folder)}?`;
- el('empty-description').textContent=`Remove all ${count} sample message(s) from ${mailboxLabel(folder)} across both sample accounts? Search and unread filters do not limit this action. This preview resets on reload; real mail is not connected.`;
+ el('empty-description').textContent=`Remove all ${count} sample message(s) from ${mailboxLabel(folder)} ${accountId ? 'in '+accountName(accountId) : 'across both sample accounts'}? Search and unread filters do not limit this action. This preview resets on reload; real mail is not connected.`;
  el('empty-confirm').showModal();el('empty-cancel').focus();
 }
-el('empty-folder').onclick=()=>requestEmpty(view);
+el('empty-folder').onclick=()=>{const {folder,accountId}=mailboxScope();requestEmpty(folder,accountId);};
 el('empty-cancel').onclick=()=>el('empty-confirm').close();
 el('empty-confirm').addEventListener('close',()=>{pendingFolder=null;});
-el('empty-approve').onclick=()=>{if(!pendingFolder)return;const folder=pendingFolder;messages=emptyMailbox(messages,folder);el('empty-confirm').close();render();notice(`${mailboxLabel(folder)} emptied. Sample data resets on reload.`);};
-for(const folder of ['junk','trash']){
- const button=document.querySelector(`[data-view="${folder}"]`);
+el('empty-approve').onclick=()=>{if(!pendingFolder)return;const {folder,accountId}=pendingFolder;messages=emptyMailbox(messages,folder,accountId);el('empty-confirm').close();render();notice(`${mailboxLabel(folder)} emptied. Sample data resets on reload.`);};
+for(const button of document.querySelectorAll('[data-view]')){
+ const {folder,accountId}=mailboxScope(button.dataset.view);if(!['junk','trash'].includes(folder))continue;
  button.addEventListener('contextmenu',async event=>{
   event.preventDefault();
-  if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder);}catch{notice('Mailbox menu unavailable. Use the Empty button in this mailbox.');}}
-  else {el('mailbox-context-title').textContent=mailboxLabel(folder);el('context-empty').textContent=`Empty ${mailboxLabel(folder)}…`;el('context-empty').onclick=()=>{el('mailbox-context').close();requestEmpty(folder);};el('mailbox-context').showModal();}
+  if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder,accountId);}catch{notice('Mailbox menu unavailable. Use the Empty button in this mailbox.');}}
+  else {el('mailbox-context-title').textContent=mailboxLabel(folder);el('context-empty').textContent=`Empty ${mailboxLabel(folder)}…`;el('context-empty').onclick=()=>{el('mailbox-context').close();requestEmpty(folder,accountId);};el('mailbox-context').showModal();}
  });
 }
 el('context-close').onclick=()=>el('mailbox-context').close();
@@ -109,3 +113,22 @@ el('menu-about').onclick=()=>{closeWindowMenus();el('about').showModal();};el('a
 document.querySelectorAll('.window-menu details').forEach(menu=>menu.addEventListener('toggle',()=>{if(menu.open)document.querySelectorAll('.window-menu details').forEach(other=>{if(other!==menu)other.open=false;});}));
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeWindowMenus();});
 document.addEventListener('click',event=>{if(!event.target.closest('.window-menu'))closeWindowMenus();});
+
+for(const name of ['home','view','help'])el(`tab-${name}`).onclick=()=>{
+ for(const panel of ['home','view','help']){el(`ribbon-${panel}`).hidden=panel!==name;el(`tab-${panel}`).setAttribute('aria-selected',String(panel===name));}
+};
+el('ribbon-rules').onclick=()=>el('rules').showModal();
+el('ribbon-accounts').onclick=()=>openAccounts();
+el('ribbon-about').onclick=()=>el('about').showModal();
+el('ribbon-density').onclick=()=>el('density').click();
+for(const layout of ['preview','columns'])el(`layout-${layout}`).onclick=()=>{
+ document.body.dataset.mailLayout=layout;
+ el('layout-preview').setAttribute('aria-pressed',String(layout==='preview'));
+ el('layout-columns').setAttribute('aria-pressed',String(layout==='columns'));
+};
+
+const ribbonTabs=[...document.querySelectorAll('.ribbon-tabs [role="tab"]')];
+for(const [index,tab] of ribbonTabs.entries())tab.addEventListener('keydown',event=>{
+ const next=event.key==='ArrowRight'?(index+1)%ribbonTabs.length:event.key==='ArrowLeft'?(index+ribbonTabs.length-1)%ribbonTabs.length:event.key==='Home'?0:event.key==='End'?ribbonTabs.length-1:null;
+ if(next!==null){event.preventDefault();ribbonTabs[next].focus();ribbonTabs[next].click();}
+});
