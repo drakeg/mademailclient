@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('desktopMail', {
   isDesktop: true,
+  accounts: Object.fromEntries(['list','add','remove','inbox','body'].map(name => [name, input => ipcRenderer.invoke('accounts:'+name,input)])),
   onAccountsCommand: callback => {
     if (typeof callback !== 'function') return;
     const listener = (_event, mode) => { if (['add','manage'].includes(mode)) callback(mode); };

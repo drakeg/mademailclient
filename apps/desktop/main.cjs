@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain, safeStorage } = require('electron');
+const { createVault, registerAccounts } = require('./accounts.cjs');
 const { join } = require('node:path');
 const { assetResponse } = require('./assets.cjs');
 const { createMenuTemplate } = require('./menu.cjs');
@@ -38,9 +39,10 @@ app.whenReady().then(()=>{
       window.show(); window.focus();
     },
     mailboxCommand: folder => { if (window && !window.isDestroyed()) window.webContents.send('mailbox:empty', folder); },
-    showAbout: () => dialog.showMessageBox({ type: 'info', title: 'About Made Mail', message: 'Made Mail', detail: `Version ${app.getVersion()}\nDesktop preview with fictional mail. Real account connections are not available yet.` }),
+    showAbout: () => dialog.showMessageBox({ type: 'info', title: 'About Made Mail', message: 'Made Mail', detail: `Version ${app.getVersion()}\nDesktop alpha. IMAP inbox reading; sending and mail changes are not available yet.` }),
   })));
   registerMailboxMenu(ipcMain, Menu, () => window);
+  registerAccounts(ipcMain, () => window, createVault(join(app.getPath('userData'), 'accounts.enc'), safeStorage));
   createWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });

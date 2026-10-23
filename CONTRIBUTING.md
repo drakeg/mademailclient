@@ -20,3 +20,5 @@ Be respectful and specific. Critique ideas, avoid harassment, and remove private
 
 ## Security
 Follow SECURITY.md for private reports. Do not publish credentials or exploit details in an issue.
+
+Desktop account contributions must preserve empty startup and GUI add/remove support. Read [the current account contract](docs/ACCOUNTS.md) before changing IPC, credentials, or provider access. Keep transport read-only until provider mutations have explicit capability and retry semantics. Test with synthetic clients and disposable accounts; never commit a personal account vault. OS credential persistence and actual provider acceptance must be reported separately from mock tests.

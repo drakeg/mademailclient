@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs && node --check apps/desktop/main.cjs && node --check apps/desktop/assets.cjs && node --check apps/desktop/menu.cjs && node --check apps/desktop/smoke.cjs && node --check scripts/desktop-smoke.mjs && node --check apps/desktop/preload.cjs && node --check apps/desktop/mailbox-ipc.cjs && node --check packages/core/mailboxes.mjs",
+    "check": "node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs && node --check apps/desktop/main.cjs && node --check apps/desktop/assets.cjs && node --check apps/desktop/menu.cjs && node --check apps/desktop/smoke.cjs && node --check scripts/desktop-smoke.mjs && node --check apps/desktop/preload.cjs && node --check apps/desktop/mailbox-ipc.cjs && node --check packages/core/mailboxes.mjs && node --check apps/desktop/accounts.cjs",
     "desktop": "electron .",
     "desktop:pack": "electron-builder --dir",
     "desktop:mac": "electron-builder --mac",
@@ -55,5 +55,9 @@
       "createDesktopShortcut": true
     },
     "artifactName": "Made-Mail-${version}-${os}-${arch}.${ext}"
+  },
+  "dependencies": {
+    "imapflow": "2.9.1",
+    "mailparser": "3.12.4"
   }
 }

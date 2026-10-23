@@ -68,3 +68,15 @@ Release automation now builds Mac arm64, Mac x64 and Windows x64 on matching Git
 
 ## Desktop usability follow-up
 alpha.2 adds explicit native window framing and recovery, a Mailbox menu, context actions for Junk/Deleted Items and counted confirmations. Browser manual checks verified right-click action selection and cancel preserving messages. Unit tests cover folder scope, IPC rejection and menu dispatch; native interactions still need platform verification. No alpha.2 installer release has been published.
+
+## Account lifecycle increment (2026-10-23)
+
+| Story | Status / next acceptance |
+|---|---|
+| A02a GUI add/remove with encrypted desktop vault | Implemented; OS credential persistence and real-provider acceptance pending |
+| S01a Recent IMAP inbox reads | Implemented: 30 per account, bounded text preview; protocol fixtures tested, live-provider acceptance pending |
+| U01a Empty startup and unified/account inbox UI | Implemented; pagination and full folder synchronization remain backlog |
+| A02b Microsoft/Google OAuth | Next: registrations, PKCE, scope/consent and refresh design |
+| X03 trusted installers | Blocked on signing identities; existing release gate retained |
+
+Full A02/S01/U01 acceptance is not complete. See ACCOUNTS.md for support and evidence limits. Account removal never removes remote mail.

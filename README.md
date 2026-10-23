@@ -3,7 +3,7 @@
 An open-source email client bringing existing accounts into one workspace, inspired by familiar Outlook and Apple Mail workflows.
 
 ## Status
-Foundation prototype, not a production email client. The browser demo displays fictional messages, supports unified/account inboxes and search, and previews rules. It does not connect accounts, persist rules, send mail, execute actions, or run background jobs. Desktop packaging now targets Mac DMG and Windows setup EXE; see [desktop setup](docs/DESKTOP.md). Installer signing and platform acceptance testing remain pending.
+Foundation prototype, not a production email client. The browser demo can display optional fictional messages, supports unified/account inboxes and search, and previews rules. The desktop alpha now offers GUI-managed IMAP app-password accounts with OS-encrypted credentials and read-only recent inbox retrieval. It starts with no accounts; fictional sample mail is optional. OAuth, sending, full synchronization and live mail actions remain unimplemented. See [account setup and limits](docs/ACCOUNTS.md). Desktop packaging now targets Mac DMG and Windows setup EXE; see [desktop setup](docs/DESKTOP.md). Installer signing and platform acceptance testing remain pending.
 
 ## Installable desktop apps (primary delivery)
 

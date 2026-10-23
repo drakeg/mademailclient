@@ -20,3 +20,7 @@ Mac/Windows desktop apps are the primary delivery track. Electron shell and DMG/
 
 ## Decisions
 See adr/0001-foundation.md. See adr/0002-desktop-first.md. Future decisions: identity/session design, database and queue, provider order, credentials/key management, and hosting distribution.
+
+## Desktop account adapter increment
+
+See [account contract and security boundaries](ACCOUNTS.md). Fixed main-process IPC now manages an encrypted account vault and read-only TLS IMAP inbox requests. This supersedes the previous statement that all provider connections and native credentials are unimplemented; OAuth and the target worker architecture remain proposed. No hosted account API exists.

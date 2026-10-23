@@ -51,3 +51,7 @@ The supplied Outlook screenshot guides the default interface: gray search/title 
 Commands for sample archive/delete/junk/read/flag and rules are wired. New mail/reply/forward stay disabled because sending is not implemented. Account setup remains a preview notice, not a working OAuth flow. Emptying an account's Junk/Deleted Items is scoped to that account; native Mailbox menu commands still apply across sample accounts and the confirmation explains scope.
 
 Browser visual checks verified both layouts, ribbon navigation and reading-pane restoration. Packaged smoke checks cover the desktop bridge, native-menu duplication prevention and layout switching; platform-native appearance remains subject to manual acceptance.
+
+## Account-enabled source update
+
+On the existing `feat/mailboxes-and-account-menu` branch, close Made Mail, then run `git pull`, `pnpm install --frozen-lockfile`, and `pnpm desktop`. New runtime dependencies require the install step. Add/remove accounts through the GUI; [supported connections and current limits](ACCOUNTS.md). Source launch is for contributors; packaged users do not need pnpm or a running web server. A generated unsigned .app is not a trusted distributable release.

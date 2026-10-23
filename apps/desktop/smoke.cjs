@@ -13,6 +13,10 @@ function attachSmokeTest(app, window, Menu) {
       const result = await window.webContents.executeJavaScript(`(async () => {
         const assert = (ok, message) => { if (!ok) throw new Error(message); };
         const wait = async (test) => { for (let n=0; n<100; n++) { if(test()) return; await new Promise(r=>setTimeout(r,50)); } throw new Error('Interface did not initialize'); };
+        await wait(()=>document.querySelector('.demo-status').textContent==='0 account(s)' && document.querySelector('#refresh').getAttribute('aria-busy')==='false');
+        assert(!document.querySelector('.message'),'No default accounts or messages');
+        document.querySelector('[data-open-accounts="add"]').click();
+        document.querySelector('#demo-mode').click();
         await wait(()=>document.querySelectorAll('.message').length===7);
         assert(window.desktopMail?.isDesktop === true,'Desktop preload bridge');
         assert(getComputedStyle(document.querySelector('.window-menu')).display==='none','No duplicated desktop menu');

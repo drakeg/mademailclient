@@ -28,3 +28,5 @@ Review docs/TESTING.md and docs/releases/alpha-acceptance.md before publishing. 
 
 ## Mac trust regression gate
 After the installed alpha was reported as damaged, Mac tag jobs now require strict signature verification, stapled notarization and Gatekeeper acceptance. Current unsigned tag builds will fail by design; development branch builds remain unsigned and must not be described as normal-installation-ready. See docs/MAC_SIGNING.md for the missing credentials and signed-build plan.
+
+The account adapter adds locked runtime IMAP/MIME dependencies. CI installs these into packaged apps; run production dependency auditing on updates. Account unit tests use synthetic clients and an injected encryption adapter; live credentials must never be added to CI. Packaged smoke tests assert empty startup and explicitly enter sample mode. Signing gates remain unchanged.
