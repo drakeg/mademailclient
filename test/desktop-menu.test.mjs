@@ -27,4 +27,11 @@ test('native Mailbox actions select only their intended folder and View exposes 
  menu.find(item=>item.label==='View').submenu.find(item=>item.label==='Restore Standard Window').click();assert.equal(restored,true);
 });
 
-test('account menu actions dispatch add and manage without requesting credentials',()=>{const commands=[];const menu=createMenuTemplate('darwin',{...options,accountsCommand:mode=>commands.push(mode)});const file=menu.find(item=>item.label==='File');file.submenu.filter(item=>item.label?.includes('Account')).forEach(item=>item.click());assert.deepEqual(commands,['add','manage']);});
+test('account menu actions dispatch add and manage without requesting credentials',()=>{const commands=[];const menu=createMenuTemplate('darwin',{...options,accountsCommand:mode=>commands.push(mode)});const file=menu.find(item=>item.label==='File');file.submenu.filter(item=>item.label?.includes('Account')).forEach(item=>item.click());assert.deepEqual(commands,['add']);});
+
+test('Mac settings uses Command-comma in the application menu; Windows keeps settings in File',()=>{
+ const commands=[];const mac=createMenuTemplate('darwin',{...options,accountsCommand:mode=>commands.push(mode)});
+ const settings=mac[0].submenu.find(item=>item.label==='Settings…');
+ assert.equal(settings.accelerator,'CmdOrCtrl+,');settings.click();assert.deepEqual(commands,['manage']);
+ const windows=createMenuTemplate('win32',options);assert.ok(windows[0].submenu.some(item=>item.label==='Account Settings…'));
+});

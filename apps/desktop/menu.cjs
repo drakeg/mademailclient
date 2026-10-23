@@ -9,10 +9,18 @@ function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, re
     ...(mac ? [{ type: 'separator' }, { label: 'Speech', submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }] }] : []),
   ];
   return [
-    ...(mac ? [{ label: 'Made Mail', submenu: [{role:'about'},{type:'separator'},{label:'Accounts…',click:()=>accountsCommand('manage')},{type:'separator'},{role:'services'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{role:'quit'}] }] : []),
+    ...(mac ? [{ label: 'Made Mail', submenu: [
+      { role: 'about' }, { type: 'separator' },
+      { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: () => accountsCommand('manage') },
+      { label: 'Accounts…', click: () => accountsCommand('manage') },
+      { label: 'Add Account…', click: () => accountsCommand('add') },
+      { type: 'separator' }, { role: 'services' }, { type: 'separator' },
+      { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' },
+      { type: 'separator' }, { role: 'quit' },
+    ] }] : []),
     { label: mac ? 'File' : '&File', submenu: [
       { label: 'Add Account…', click: () => accountsCommand('add') },
-      { label: 'Accounts…', click: () => accountsCommand('manage') },
+      ...(!mac ? [{ label: 'Account Settings…', click: () => accountsCommand('manage') }] : []),
       { type: 'separator' },
       { role: 'close' },
       ...(!mac ? [{ type: 'separator' }, { role: 'quit', label: 'E&xit' }] : []),

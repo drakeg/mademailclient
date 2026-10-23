@@ -1,3 +1,4 @@
+document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'desktop' : 'browser';
 import { planRules, validateRule } from '/packages/core/rules.mjs';
 import { emptyMailbox } from '/packages/core/mailboxes.mjs';
 let messages = [
