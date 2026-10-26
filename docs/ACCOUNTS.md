@@ -39,3 +39,7 @@ SMTP uses Nodemailer verify(), which connects, negotiates TLS, requires authenti
 Nodemailer 10.2.1 (MIT-0) is now an exact direct dependency, already present in the locked transitive graph. No new transitive packages or install scripts were introduced. Production audit on 2026-10-26 reported no known vulnerabilities. Source references and acceptance criteria are in [the setup plan](ACCOUNT_SETUP_PLAN.md).
 
 Tests cover separate/reused SMTP credentials, redacted summaries, secure transport options, a real local SMTP fixture refusing TLS downgrade before AUTH, preservation on failed verification, legacy account edits, credential destination changes, domain-only discovery, partial discovery and timeouts. Live provider login and OS credential persistence still require disposable-account acceptance; fixture tests are not evidence that a specific personal/work account can connect.
+
+## Provider chooser and browser authorization
+
+Add Account now offers Gmail/Google Workspace, Yahoo, iCloud and Other email. The first three offer simplified app-password setup with prefilled servers and usernames; advanced settings remain expandable. Gmail/Yahoo browser authorization is implemented behind registered public OAuth clients, but no registrations currently exist, so default builds clearly disable that option. See [publisher registration and sign-in status](PROVIDER_SIGN_IN.md). The earlier statement that all OAuth code is absent is superseded by this increment; provider registration/approval and live acceptance are not complete.

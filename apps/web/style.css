@@ -51,3 +51,17 @@ html[data-shell=browser] .workspace{height:calc(100dvh - 101px)}
 .menu-popup button:disabled:hover{background:transparent}
 @media(max-width:800px){.application-status .local-note{display:none}.message-toolbar{padding:6px}.message-command{font-size:11px;padding:6px}}
 @media(max-width:540px){.workspace,html[data-shell=desktop] .workspace,html[data-shell=browser] .workspace{height:auto}.application-status{height:auto;min-height:26px}.reading-pane{min-height:550px}}
+.provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 20px}
+.provider-grid button{padding:18px 12px;border:1px solid #cbd3de;border-radius:6px;background:#fff;font-weight:600;text-align:left;min-height:58px}
+.provider-grid button:hover{border-color:var(--blue);background:#f0f6fc}
+#provider-picker[hidden],#provider-methods[hidden]{display:none}
+#provider-methods{margin:16px 0;padding:14px;border:1px solid #d6dce4;border-radius:6px;background:#f8fafc}
+#provider-methods p{font-size:12px;line-height:1.6}
+.provider-method-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.provider-method-buttons button,#provider-cancel{padding:9px 12px;border:1px solid #ccd4df;border-radius:4px;background:#fff}
+.provider-method-buttons .primary-button{background:var(--blue);border-color:var(--blue)}
+#account-server-settings{margin:0}
+#account-server-settings>summary{padding:10px 0;color:#3e5d7c;font-size:12px}
+#account-server-settings>fieldset{margin:12px 0}
+#simple-provider-help{color:#59636e}
+@media(max-width:400px){.provider-grid{grid-template-columns:1fr}}

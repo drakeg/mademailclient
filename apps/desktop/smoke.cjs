@@ -21,7 +21,17 @@ function attachSmokeTest(app,window,Menu) {
    item('accounts:add').click();
    await run(`
     await wait(()=>document.querySelector('#accounts').open);
+    assert(document.querySelector('[data-account-provider="google"]')&&document.querySelector('[data-account-provider="yahoo"]'),'Provider chooser');
+    document.querySelector('[data-account-provider="google"]').click();
+    const registration=await window.desktopMail.accounts.providers();
+    if(!registration.data.find(p=>p.id==='google').available)assert(document.querySelector('#provider-browser-signin').disabled,'Unregistered browser sign-in is unavailable');
+    document.querySelector('#provider-app-password').click();
     const f=document.querySelector('#account-form').elements;
+    await wait(()=>f.host.value==='imap.gmail.com'&&!document.querySelector('#account-save').disabled);
+    assert(!document.querySelector('#account-server-settings').open,'Simple setup hides advanced fields');
+    f.email.value='sample@gmail.com';f.email.dispatchEvent(new Event('input',{bubbles:true}));
+    assert(f.username.value==='sample@gmail.com'&&f.smtpUsername.value==='sample@gmail.com','Simple setup fills both usernames');
+    document.querySelector('#provider-back').click();document.querySelector('[data-account-provider="other"]').click();
     assert(f.smtpHost&&f.smtpPort&&f.smtpSecurity,'SMTP controls');
     f.email.value='sample@icloud.com';f.email.dispatchEvent(new Event('input',{bubbles:true}));f.email.dispatchEvent(new Event('change',{bubbles:true}));
     await wait(()=>document.querySelector('#discovery-status').textContent.includes('Built-in provider settings'));
@@ -47,7 +57,7 @@ function attachSmokeTest(app,window,Menu) {
    await run(`await wait(()=>!document.querySelector('.message'));document.querySelector('[data-view="work"]').click();assert([...document.querySelectorAll('.subject')].some(n=>n.textContent.includes('Brand direction')),'Not Junk returns to same account Inbox');`);
    item('mailbox:rules').click();
    await run(`await wait(()=>document.querySelector('#rules').open);const form=document.querySelector('#rule-form');form.elements.term.value='invoice';form.elements.value.value='Finance';form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));assert(document.querySelector('#preview').textContent.includes('1 matching inbox message'),'Native Rules command');document.querySelector('#rules').close();document.querySelector('[data-view="personal"]').click();assert(document.querySelectorAll('.message').length===3,'Individual inbox');const search=document.querySelector('#search');search.value='garden';search.dispatchEvent(new Event('input'));assert(document.querySelectorAll('.message').length===1,'Search');`);
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:24}));
+   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:28}));
    clearTimeout(timeout);app.exit(0);
   }catch(error){fail(error.message);}
  });

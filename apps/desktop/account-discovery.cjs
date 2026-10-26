@@ -2,7 +2,7 @@ const { Resolver } = require('node:dns/promises');
 const { emailAddress, endpoint } = require('./mail-network.cjs');
 // Provider settings are suggestions only. Authentication still requires an explicit save.
 const presets = [
- {domains:['gmail.com','googlemail.com'],name:'Gmail',imap:'imap.gmail.com',smtp:'smtp.gmail.com',port:465,security:'tls',note:'Use an app password if your Google account permits it. OAuth sign-in is not available yet.'},
+ {domains:['gmail.com','googlemail.com'],name:'Gmail',imap:'imap.gmail.com',smtp:'smtp.gmail.com',port:465,security:'tls',note:'Use an app password if your Google account permits it. Browser sign-in is a separate option requiring a configured Made Mail registration.'},
  {domains:['icloud.com','me.com','mac.com'],name:'iCloud',imap:'imap.mail.me.com',smtp:'smtp.mail.me.com',port:587,security:'starttls',note:'Use an Apple app-specific password. If needed, change the incoming username to the part before @ and use separate SMTP credentials with the full address.'},
  {domains:['outlook.com','hotmail.com','live.com','msn.com'],name:'Outlook.com',imap:'outlook.office365.com',smtp:'smtp-mail.outlook.com',port:587,security:'starttls',requiresOAuth:true,note:'Microsoft requires OAuth sign-in, which Made Mail does not support yet. Finding these settings does not enable account connection.'},
  {domains:['yahoo.com','ymail.com','rocketmail.com'],name:'Yahoo Mail',imap:'imap.mail.yahoo.com',smtp:'smtp.mail.yahoo.com',port:465,security:'tls',note:'Use a Yahoo app password. Provider account policies still apply.'},

@@ -54,8 +54,8 @@ test('unregistered and failed logins do not open a browser or change existing ac
 });
 test('refresh rotates tokens atomically and cannot redirect OAuth credentials to arbitrary mail hosts',async()=>{
  const account={...providerAccount('google',{email:'sample@gmail.com',email_verified:true,sub:'one'},{clientId:'test.apps.googleusercontent.com',refreshToken:'old-refresh',accessToken:'old-access',expiresAt:0}),id:'one'};
- const h=serviceHarness([account]);const prepared=await h.service.prepare(account);assert.equal(prepared.oauth.accessToken,'synthetic-access');assert.equal(h.records()[0].oauth.refreshToken,'synthetic-refresh');assert.equal(h.calls[0].options.body.grant_type,'refresh_token');
- await assert.rejects(h.service.prepare({...account,host:'evil.example'}));
+ const h=serviceHarness([account]);await assert.rejects(h.service.prepare({...account,host:'evil.example'}),/provider servers/);assert.equal(h.calls.length,0);
+ const prepared=await h.service.prepare(account);assert.equal(prepared.oauth.accessToken,'synthetic-access');assert.equal(h.records()[0].oauth.refreshToken,'synthetic-refresh');assert.equal(h.calls[0].options.body.grant_type,'refresh_token');
 });
 test('reconnect cannot overwrite a different authorized identity',async()=>{
  const original={...providerAccount('google',{email:'other@gmail.com',email_verified:true,sub:'other'},{clientId:'test.apps.googleusercontent.com',refreshToken:'old',accessToken:'old',expiresAt:0}),id:'saved'};

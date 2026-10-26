@@ -94,3 +94,7 @@ See ACCOUNT_SETUP_PLAN.md and ACCOUNTS.md for the contract, security boundaries,
 ## Native menus and folder-only sidebar
 
 Menu placement is now a standing UI requirement: account setup in application/File menus, Rules in Mailbox, selected-message actions in Message and the right reading pane. The sidebar contains mailbox navigation only; the command ribbon is removed. Contextual Junk/Not Junk movement is implemented for sample data and tested; live mutations and sending remain backlog. See MENU_LAYOUT.md for acceptance and capability limits.
+
+## Easier Gmail/Yahoo connection
+
+Provider selection and simple app-password forms are implemented. Google/Yahoo native Authorization Code + PKCE, encrypted tokens, refresh, identity-safe reconnect and platform callback wiring are implemented with synthetic tests. Publisher registrations are missing (owner confirmed); Yahoo mail access approval, Google consent/verification, and live-platform/provider acceptance remain open. A02b is therefore implemented pending external registration and acceptance, not Done. See PROVIDER_SIGN_IN.md for setup and evidence limits.
