@@ -37,3 +37,7 @@ MIT; see LICENSE. This is an original implementation and is not affiliated with 
 
 ## Alpha testing and releases
 See [desktop testing](docs/TESTING.md) and [alpha acceptance status](docs/releases/alpha-acceptance.md). Platform installers are built by GitHub Actions. Matching alpha version tags create a draft prerelease only after all three packaged-app smoke tests pass. Normal distribution remains gated on native installation acceptance and signing/notarization. Release source archives are not installers.
+
+## Mail workspace
+
+Desktop commands use native OS menus. Add Account and Accounts/Settings live in the application/File menu; Rules lives in Mailbox. The left pane contains only mailbox/folder navigation. Selected-message commands live in the right reading pane and Message menu, with contextual Junk/Not Junk. See [menu and layout contract](docs/MENU_LAYOUT.md) for current capabilities and limitations.

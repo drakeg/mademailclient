@@ -34,3 +34,20 @@ body[data-mail-layout=columns] .workspace{grid-template-columns:250px minmax(460
 #discovery-status{margin:0;color:#445569;line-height:1.5}
 #account-status{margin:0;overflow-wrap:anywhere}
 #discover-account{justify-self:start}
+/* Native-menu workspace: navigation left, selected-message commands right. */
+.workspace,html[data-shell=desktop] .workspace{height:calc(100dvh - 72px)}
+html[data-shell=browser] .workspace{height:calc(100dvh - 101px)}
+.application-status{height:26px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 16px;border-top:1px solid var(--line);background:#f7f7f7;font-size:11px;color:#616161}
+.application-status .local-note{display:flex;align-items:center;gap:12px;padding:0;border:0;margin:0;font-size:11px;line-height:1.4}
+.application-status .local-note span{display:inline;font-size:11px;color:#616161}
+.message-toolbar{height:auto;min-height:76px;flex-wrap:wrap;align-content:center;padding:8px 12px;gap:4px}
+.message-command{display:inline-flex;align-items:center;gap:6px;padding:7px 8px;min-height:32px;border-radius:4px;font-size:12px;color:#374454}
+.message-command:hover:not(:disabled){background:#e5edf6}
+.message-command[hidden],.menu-popup button[hidden]{display:none}
+.message-command .icon{width:16px;height:16px}
+.message-command:disabled{opacity:.5}
+#reader-position{margin-left:auto;color:#616161;font-size:10px;white-space:nowrap}
+.menu-popup button:hover:not(:disabled){background:#eaf1ff}
+.menu-popup button:disabled:hover{background:transparent}
+@media(max-width:800px){.application-status .local-note{display:none}.message-toolbar{padding:6px}.message-command{font-size:11px;padding:6px}}
+@media(max-width:540px){.workspace,html[data-shell=desktop] .workspace,html[data-shell=browser] .workspace{height:auto}.application-status{height:auto;min-height:26px}.reading-pane{min-height:550px}}

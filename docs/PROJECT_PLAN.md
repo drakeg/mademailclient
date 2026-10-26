@@ -90,3 +90,7 @@ Full A02/S01/U01 acceptance is not complete. See ACCOUNTS.md for support and evi
 | U02 Compose/send | Sending account selection, drafts, attachments and duplicate-send recovery | Backlog; SMTP verification does not complete this story |
 
 See ACCOUNT_SETUP_PLAN.md and ACCOUNTS.md for the contract, security boundaries, source references and remaining acceptance work.
+
+## Native menus and folder-only sidebar
+
+Menu placement is now a standing UI requirement: account setup in application/File menus, Rules in Mailbox, selected-message actions in Message and the right reading pane. The sidebar contains mailbox navigation only; the command ribbon is removed. Contextual Junk/Not Junk movement is implemented for sample data and tested; live mutations and sending remain backlog. See MENU_LAYOUT.md for acceptance and capability limits.

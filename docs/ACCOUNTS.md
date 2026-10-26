@@ -1,6 +1,6 @@
 # Desktop account connections
 
-Made Mail starts empty. Use Made Mail → Add Account on macOS, File → Add Account on Windows, or the sidebar Add account button. Accounts can be added, edited, and removed through Accounts. Use Edit settings on an existing account to add SMTP without removing it. Removal forgets credentials and loaded messages in Made Mail; it never deletes mail on the server. Sample mail is available only through Explore fictional sample mail in Accounts.
+Made Mail starts empty. Use Made Mail → Add Account or File → Add Account on macOS, and File → Add Account on Windows. Accounts can be added, edited, and removed through Accounts. Use Edit settings on an existing account to add SMTP without removing it. Removal forgets credentials and loaded messages in Made Mail; it never deletes mail on the server. Sample mail is available only through Explore fictional sample mail in Accounts.
 
 ## Current support
 

@@ -1,4 +1,5 @@
 document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'desktop' : 'browser';
+import { messageCommands, applyDemoMessageAction } from '/packages/core/message-actions.mjs';
 import { planRules, validateRule } from '/packages/core/rules.mjs';
 import { createAccountSetup } from '/apps/web/account-setup.mjs';
 import { emptyMailbox } from '/packages/core/mailboxes.mjs';
@@ -41,7 +42,10 @@ function visibleMessages(){const term=el('search').value.toLowerCase();return me
 function notice(value){el('notice').textContent=value;el('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{el('notice').hidden=true;},4500);}
 function renderReader(visible){
  const m=visible.find(m=>m.id===selectedId);el('reader').replaceChildren();
- document.querySelectorAll('[data-action]').forEach(b=>b.disabled=!m||!demo);
+ const commands=messageCommands(m,{canModify:demo});
+ document.querySelectorAll('[data-action]').forEach(b=>{const state=commands[b.dataset.action];b.disabled=!state.enabled;b.hidden=!state.visible;b.title=state.reason||state.label;b.setAttribute('aria-label',state.label);const label=b.querySelector('span');if(label)label.textContent=state.label;else b.textContent=state.label;});
+ window.desktopMail?.setMessageMenuState({selected:!!m,canModify:demo,junk:['junk','spam'].includes(m?.folder),unread:!!m?.unread,flagged:!!m?.flagged,trash:m?.folder==='trash',archive:m?.folder==='archive'});
+ el('reader-capabilities').textContent=demo?'Sample message changes reset on reload. Sending is not available yet.':m?'Connected account is read-only. Sending and mail changes are not available yet.':'Select a message to see available actions.';
  el('reader-position').textContent=m?`${visible.indexOf(m)+1} of ${visible.length}`:'';
  if(!m){const empty=text('div','',el('reader'),'empty-state');icon('mail',empty);text('h2','No message selected',empty);text('p','Choose a message to read it here.',empty);return;}
  const label=text('div','',el('reader'),'reader-label');text('i','',label,`account-dot ${m.accountId}`);text('span',`${accountName(m.accountId)} / ${m.folder==='inbox'?'Inbox':m.folder}`,label);
@@ -49,7 +53,6 @@ function renderReader(visible){
  const sender=text('div','',el('reader'),'sender-card');text('div',m.from.split(' ').slice(0,2).map(w=>w[0]).join(''),sender,'avatar');const info=text('div','',sender,'sender-info');text('strong',m.from,info);text('p',`${m.email} → ${m.to}`,info);text('span',m.time,sender,'sender-date');
  text('div',m.body,el('reader'),'message-body');
  if(m.hasAttachment){const attachment=text('div','',el('reader'),'attachment');icon('paperclip',attachment);const info=text('div','',attachment);text('strong',m.attachment,info);text('small','Sample attachment · preview only',info);}
- const replies=text('div','',el('reader'),'reply-buttons');for(const [name,label] of [['reply','Reply'],['forward','Forward']]){const b=text('button','',replies);icon(name,b);text('span',label,b);b.disabled=true;b.title='Sending is coming with account connections';}
  document.querySelectorAll('[data-action="flag"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.flagged)));
  document.querySelectorAll('[data-action="unread"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.unread)));
 }
@@ -58,7 +61,7 @@ function render(){
  el('mailbox-title').textContent=names[view]||accountName(view.split(':')[0]);el('mailbox-summary').textContent=`${visible.length} message${visible.length===1?'':'s'} · ${visible.filter(m=>m.unread).length} unread`;
  el('messages').replaceChildren();let group;
  for(const m of visible){if(group!==m.date){group=m.date;text('div',group,el('messages'),'date-heading');}const b=text('button','',el('messages'),`message${m.unread?' unread':''}${selectedId===m.id?' selected':''}`);b.setAttribute('aria-pressed',String(selectedId===m.id));b.setAttribute('aria-label',`${m.from}: ${m.subject}, ${m.time}, ${accountName(m.accountId)}${m.unread?', unread':''}`);if(m.unread)text('span','',b,'unread-dot');text('span',m.from.split(' ').slice(0,2).map(w=>w[0].toUpperCase()).join(''),b,'message-avatar');const row=text('div','',b,'message-top');text('span',m.from,row,'sender');text('time',m.time,row);text('span',m.subject,b,'subject');text('span',m.body.replaceAll('\n',' '),b,'snippet');const meta=text('div','',b,'message-meta');text('i','',meta,`account-dot ${m.accountId}`);text('span',accountName(m.accountId),meta);if(m.hasAttachment)icon('paperclip',meta);if(m.flagged)icon('flag',meta);b.onclick=async()=>{selectedId=m.id;render();if(!demo&&m.uid&&!m.loaded){const r=await api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity});if(r!==undefined){m.body=r;m.loaded=true;render();}}};}
- if(!visible.length){const empty=text('div','',el('messages'),'empty-state');icon('inbox',empty);text('p',loading?'Loading inboxes…':accounts.length||demo?'No messages here.':'Add an account to get started.',empty);if(!accounts.length&&!demo){const add=text('button','Add account',empty);add.onclick=()=>openAccounts('add');}}
+ if(!visible.length){const empty=text('div','',el('messages'),'empty-state');icon('inbox',empty);text('p',loading?'Loading inboxes…':accounts.length||demo?'No messages here.':'Choose File → Add Account… to get started.',empty);}
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-current',b.dataset.view===view?'page':'false');});
  document.querySelectorAll('[data-count]').forEach(n=>{const count=messages.filter(m=>inView(m,n.dataset.count)&&(['flagged','junk','trash'].includes(n.dataset.count)||m.unread)).length;n.textContent=count||'';});el('empty-folder').hidden=!demo||!['junk','trash'].includes(mailboxScope().folder);el('empty-folder').textContent=mailboxScope().folder==='junk'?'Empty Junk…':'Empty Deleted Items…';renderReader(visible);
 }
@@ -67,8 +70,14 @@ el('search').oninput=render;
 for(const [id,value] of [['filter-all',false],['filter-unread',true]])el(id).onclick=()=>{unreadOnly=value;el('filter-all').setAttribute('aria-pressed',String(!value));el('filter-unread').setAttribute('aria-pressed',String(value));render();};
 el('density').onclick=()=>{const compact=document.body.classList.toggle('compact');el('density').setAttribute('aria-label',compact?'Use comfortable message spacing':'Use compact message spacing');};
 el('refresh').onclick=()=>demo?notice('Sample mail; changes reset on reload.'):refreshAccounts();
-document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const m=messages.find(m=>m.id===selectedId);if(!m||!demo)return;const action=b.dataset.action;if(action==='flag')m.flagged=!m.flagged;else if(action==='unread')m.unread=!m.unread;else{m.folder=action;notice(`Sample message moved to ${names[action]}. Changes reset on reload.`);}render();});
-el('rules-toggle').onclick=()=>el('rules').showModal();el('rules-close').onclick=()=>el('rules').close();
+function performMessageAction(action){
+ closeWindowMenus();const m=messages.find(m=>m.id===selectedId);
+ if(!demo||!messageCommands(m,{canModify:demo})[action]?.enabled)return;
+ messages=messages.map(item=>item.id===m.id?applyDemoMessageAction(item,action):item);
+ render();notice(action==='notJunk'?'Sample message moved to Inbox.':action==='junk'?'Sample message moved to Junk.':action==='trash'?'Sample message moved to Deleted Items.':'Sample message updated.');
+}
+document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>performMessageAction(b.dataset.action));
+el('rules-close').onclick=()=>el('rules').close();
 el('rule-form').onsubmit=e=>{e.preventDefault();const data=new FormData(e.target);el('preview').replaceChildren();try{const rule=validateRule({id:'preview',enabled:true,accountId:data.get('account')==='all'?undefined:data.get('account'),match:'all',conditions:[{field:'subject',operator:'contains',value:data.get('term')}],actions:[{type:data.get('action'),value:data.get('value')}],stopProcessing:true});const plans=messages.filter(m=>m.folder==='inbox').flatMap(m=>planRules(m,[rule]));text('strong',`${plans.length} matching inbox message(s) · preview only`,el('preview'));for(const p of plans)text('p',`${messages.find(m=>m.id===p.messageId).subject} → ${p.actions[0].type}${p.actions[0].value?': '+p.actions[0].value:''}`,el('preview'));}catch(err){text('p',err.message,el('preview'));}};
 render();
 
@@ -116,23 +125,17 @@ document.querySelectorAll('.window-menu details').forEach(menu=>menu.addEventLis
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeWindowMenus();});
 document.addEventListener('click',event=>{if(!event.target.closest('.window-menu'))closeWindowMenus();});
 
-for(const name of ['home','view','help'])el(`tab-${name}`).onclick=()=>{
- for(const panel of ['home','view','help']){el(`ribbon-${panel}`).hidden=panel!==name;el(`tab-${panel}`).setAttribute('aria-selected',String(panel===name));}
-};
-el('ribbon-rules').onclick=()=>el('rules').showModal();
-el('ribbon-accounts').onclick=()=>openAccounts();
-el('ribbon-about').onclick=()=>el('about').showModal();
-el('ribbon-density').onclick=()=>el('density').click();
-for(const layout of ['preview','columns'])el(`layout-${layout}`).onclick=()=>{
+function setLayout(layout){
  document.body.dataset.mailLayout=layout;
  el('layout-preview').setAttribute('aria-pressed',String(layout==='preview'));
  el('layout-columns').setAttribute('aria-pressed',String(layout==='columns'));
-};
-
-const ribbonTabs=[...document.querySelectorAll('.ribbon-tabs [role="tab"]')];
-for(const [index,tab] of ribbonTabs.entries())tab.addEventListener('keydown',event=>{
- const next=event.key==='ArrowRight'?(index+1)%ribbonTabs.length:event.key==='ArrowLeft'?(index+ribbonTabs.length-1)%ribbonTabs.length:event.key==='Home'?0:event.key==='End'?ribbonTabs.length-1:null;
- if(next!==null){event.preventDefault();ribbonTabs[next].focus();ribbonTabs[next].click();}
+}
+for(const layout of ['preview','columns'])el(`layout-${layout}`).onclick=()=>{closeWindowMenus();setLayout(layout);};
+window.desktopMail?.onMenuCommand(command=>{
+ if(command==='rules'){closeWindowMenus();if(!el('rules').open)el('rules').showModal();}
+ else if(['preview','columns'].includes(command))setLayout(command);
+ else if(command==='density')el('density').click();
+ else performMessageAction(command);
 });
 
 const demoTree=document.querySelector('.account-tree').innerHTML;
@@ -142,7 +145,7 @@ function rebuildAccounts(){
  tree.querySelectorAll('[data-view]').forEach(b=>{b.onclick=()=>{view=b.dataset.view;selectedId=null;render();};const {folder,accountId}=mailboxScope(b.dataset.view);if(['junk','trash'].includes(folder))b.oncontextmenu=async event=>{event.preventDefault();if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder,accountId);}catch{notice('Use the Empty button in this mailbox.');}}else requestEmpty(folder,accountId);};});
  const select=document.querySelector('#rule-form [name="account"]');select.replaceChildren();const all=text('option','All accounts',select);all.value='all';for(const a of demo?[{id:'work',email:'alex@northstar.example'},{id:'personal',email:'alex@icloud.example'}]:accounts){const o=text('option',a.email,select);o.value=a.id;}
  document.querySelector('.demo-status').textContent=demo?'Sample mail':accounts.length+' account(s)';
- document.querySelector('.ribbon-preview').textContent=demo?'Demo · fictional mail':'Read-only desktop alpha';
+ el('connection-state').textContent=demo?'Demo · fictional mail':'Read-only desktop alpha';
  mode.querySelector('span').textContent=demo?'Fictional mail · changes reset on reload':'Live IMAP inboxes · latest 30 per account';
 }
 async function api(name,input){try{const result=await window.desktopMail.accounts[name](input);if(!result.ok)throw new Error(result.error);return result.data;}catch(error){notice(error.message||'Account operation failed.');return undefined;}}
@@ -153,3 +156,12 @@ async function refreshAccounts(){
 el('demo-mode').onclick=()=>{el('accounts').close();if(loading)return;demo=true;messages=structuredClone(demoMessages);view='inbox';rebuildAccounts();render();};
 rebuildAccounts();render();
 if(window.desktopMail)refreshAccounts();
+
+for(const menu of document.querySelectorAll('.window-menu details'))menu.addEventListener('keydown',event=>{
+ const summary=menu.querySelector('summary'),items=[...menu.querySelectorAll('button:not(:disabled):not([hidden])')];
+ if(event.key==='Escape'){event.preventDefault();menu.open=false;summary.focus();return;}
+ if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();const all=[...document.querySelectorAll('.window-menu details')],index=all.indexOf(menu),next=all[(index+(event.key==='ArrowRight'?1:all.length-1))%all.length];menu.open=false;next.open=true;next.querySelector('summary').focus();return;}
+ if(!items.length)return;
+ const index=items.indexOf(document.activeElement);
+ if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();menu.open=true;const next=event.key==='Home'?0:event.key==='End'?items.length-1:event.key==='ArrowDown'?(index+1)%items.length:(index<0?items.length-1:(index+items.length-1)%items.length);items[next].focus();}
+});
