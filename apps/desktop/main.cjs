@@ -1,5 +1,8 @@
-const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain, safeStorage } = require('electron');
-const { createVault, registerAccounts } = require('./accounts.cjs');
+const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain, safeStorage, shell } = require('electron');
+const { createOAuthService } = require('./oauth-service.cjs');
+const { registerOAuthIPC } = require('./oauth-ipc.cjs');
+const { verifySmtp } = require('./smtp.cjs');
+const { createVault, registerAccounts, withInbox } = require('./accounts.cjs');
 const { join } = require('node:path');
 const { assetResponse } = require('./assets.cjs');
 const { createMenuTemplate } = require('./menu.cjs');
@@ -8,6 +11,12 @@ const { registerMessageMenuState } = require('./message-menu.cjs');
 const { registerMailboxMenu } = require('./mailbox-ipc.cjs');
 const smokeTest = process.argv.includes('--smoke-test');
 if (smokeTest && process.env.MADEMAIL_SMOKE_PROFILE) app.setPath('userData', process.env.MADEMAIL_SMOKE_PROFILE);
+const primary=smokeTest||app.requestSingleInstanceLock();
+if(!primary)app.quit();
+let oauthService;
+app.on('open-url',(event,url)=>{event.preventDefault();oauthService?.acceptCallback(url);});
+app.on('second-instance',(_event,args)=>{for(const arg of args)if(typeof arg==='string'&&arg.startsWith('com.mademailclient.auth://'))oauthService?.acceptCallback(arg);});
+app.on('before-quit',()=>oauthService?.cancel());
 app.enableSandbox();
 protocol.registerSchemesAsPrivileged([{scheme:'mademail',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let window;
@@ -23,11 +32,11 @@ function createWindow() {
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('will-navigate',(event,url)=>{if(url !== 'mademail://app/') event.preventDefault();});
   window.webContents.on('will-attach-webview',event=>event.preventDefault());
-  window.on('closed',()=>{window=null;});
+  window.on('closed',()=>{oauthService?.cancel();window=null;});
   if (smokeTest) attachSmokeTest(app, window, Menu);
   window.loadURL('mademail://app/');
 }
-app.whenReady().then(()=>{
+if(primary)app.whenReady().then(()=>{
   protocol.handle('mademail',request=>assetResponse(join(__dirname,'../..'),request));
   session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
   session.defaultSession.setPermissionCheckHandler(()=>false);
@@ -52,7 +61,12 @@ app.whenReady().then(()=>{
   })));
   registerMessageMenuState(ipcMain,Menu,()=>window);
   registerMailboxMenu(ipcMain, Menu, () => window);
-  registerAccounts(ipcMain, () => window, createVault(join(app.getPath('userData'), 'accounts.enc'), safeStorage));
+  const vault=createVault(join(app.getPath('userData'),'accounts.enc'),safeStorage);
+  const bundled=require('./oauth-clients.json');
+  const config={google:{clientId:process.env.MADEMAIL_GOOGLE_CLIENT_ID||bundled.google?.clientId||''},yahoo:{clientId:process.env.MADEMAIL_YAHOO_CLIENT_ID||bundled.yahoo?.clientId||''}};
+  oauthService=createOAuthService({vault,config,nativeCallbackReady:app.isPackaged&&app.isDefaultProtocolClient('com.mademailclient.auth'),openExternal:url=>shell.openExternal(url),testInbox:a=>withInbox(a,async()=>{}),testSmtp:verifySmtp});
+  registerOAuthIPC(ipcMain,()=>window,oauthService);
+  registerAccounts(ipcMain,()=>window,vault,{resolveAccount:account=>oauthService.prepare(account)});
   createWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });

@@ -41,6 +41,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm test
+      - name: Configure public native OAuth client IDs
+        run: node scripts/configure-oauth.mjs
+        env:
+          MADEMAIL_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_DESKTOP_CLIENT_ID }}
+          MADEMAIL_YAHOO_CLIENT_ID: ${{ vars.YAHOO_PUBLIC_CLIENT_ID }}
       - name: Package unsigned prototype
         run: pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
         env:

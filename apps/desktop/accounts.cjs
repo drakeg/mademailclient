@@ -4,6 +4,7 @@ const { randomUUID } = require('node:crypto');
 const { publicAddress, publicHost, field, emailAddress, endpoint } = require('./mail-network.cjs');
 const { verifySmtp } = require('./smtp.cjs');
 const { discoverAccount } = require('./account-discovery.cjs');
+const { assertProviderHosts } = require('./oauth-providers.cjs');
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 function validateAccount(value) {
@@ -19,17 +20,18 @@ function validateAccount(value) {
  return account;
 }
 function accountSummary(a) {
- return {id:a.id,email:a.email,host:a.host,port:a.port??993,security:a.security??'tls',username:a.username,
+ return {id:a.id,authType:a.oauth?'oauth2':'password',...(a.oauth?{provider:a.oauth.provider}:{}),email:a.email,host:a.host,port:a.port??993,security:a.security??'tls',username:a.username,
   ...(a.smtp?{smtp:{host:a.smtp.host,port:a.smtp.port,security:a.smtp.security,username:a.smtp.username,useIncomingAuth:a.smtp.useIncomingAuth}}:{})};
 }
 function createVault(path,crypto) {
  let queue=Promise.resolve();
  async function read(){try {const decrypted=await crypto.decryptStringAsync(await fs.readFile(path));const data=JSON.parse(decrypted.result);if(data.version!==1||!Array.isArray(data.accounts))throw new Error('Invalid vault');return data.accounts;}catch(error){if(error.code==='ENOENT')return [];throw new Error('Account storage could not be unlocked. Existing data was preserved.');}}
- return {async list(){await queue;return read();},update(change){const task=queue.then(async()=>{if(!await crypto.isAsyncEncryptionAvailable())throw new Error('OS credential encryption is unavailable');const accounts=await read();const next=change(accounts);const encrypted=await crypto.encryptStringAsync(JSON.stringify({version:1,accounts:next}));const temp=path+'.'+randomUUID();try{await fs.writeFile(temp,encrypted,{mode:0o600,flag:'wx'});await fs.rename(temp,path);}finally{await fs.rm(temp,{force:true});}return next;});queue=task.catch(()=>{});return task;}};
+ return {available:()=>crypto.isAsyncEncryptionAvailable(),async list(){await queue;return read();},update(change){const task=queue.then(async()=>{if(!await crypto.isAsyncEncryptionAvailable())throw new Error('OS credential encryption is unavailable');const accounts=await read();const next=change(accounts);const encrypted=await crypto.encryptStringAsync(JSON.stringify({version:1,accounts:next}));const temp=path+'.'+randomUUID();try{await fs.writeFile(temp,encrypted,{mode:0o600,flag:'wx'});await fs.rename(temp,path);}finally{await fs.rm(temp,{force:true});}return next;});queue=task.catch(()=>{});return task;}};
 }
 async function withInbox(account,run,{resolve,Client=ImapFlow}={}) {
+ if(account.oauth)assertProviderHosts(account);
  const address=await publicHost(account.host,resolve);
- const client=new Client({host:address,port:account.port??993,secure:(account.security??'tls')==='tls',doSTARTTLS:account.security==='starttls',tls:{servername:account.host,rejectUnauthorized:true,minVersion:'TLSv1.2'},auth:{user:account.username,pass:account.password},logger:false,disableAutoIdle:true,disableCompression:true,connectionTimeout:10000,greetingTimeout:10000,socketTimeout:20000});
+ const client=new Client({host:address,port:account.port??993,secure:(account.security??'tls')==='tls',doSTARTTLS:account.security==='starttls',tls:{servername:account.host,rejectUnauthorized:true,minVersion:'TLSv1.2'},auth:account.oauth?{user:account.username,accessToken:account.oauth.accessToken}:{user:account.username,pass:account.password},logger:false,disableAutoIdle:true,disableCompression:true,connectionTimeout:10000,greetingTimeout:10000,socketTimeout:20000});
  client.on('error',()=>{});
  try {await client.connect();const lock=await client.getMailboxLock('INBOX',{readOnly:true});try{return await run(client);}finally{lock.release();}}finally{await client.logout().catch(()=>client.close());}
 }
@@ -65,13 +67,14 @@ function editedAccount(input,previous) {
  } else if(previous?.smtp)value.smtp={...previous.smtp};
  return validateAccount(value);
 }
-function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,async()=>{}),testSmtp=verifySmtp,discover=discoverAccount,now=Date.now}={}) {
+function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,async()=>{}),testSmtp=verifySmtp,discover=discoverAccount,now=Date.now,resolveAccount=async a=>a}={}) {
  let busy=false,discovering=false;
  let lastAdd=0;
  async function save(input,id) {
   if(!input||typeof input!=='object')throw setupError('SETTINGS_INVALID','Check the account settings.');
   const all=await vault.list(),previous=id?all.find(a=>a.id===id):undefined;
   if(id&&!previous)throw setupError('ACCOUNT_NOT_FOUND','Account no longer exists. Reopen Accounts.');
+  if(previous?.oauth)throw setupError('OAUTH_ACCOUNT','Use Reconnect for a browser-authorized account.');
   let account;
   try{account=editedAccount(input,previous);}catch{throw setupError('SETTINGS_INVALID','Check required fields, TLS ports and passwords. Re-enter passwords when changing a server or username.');}
   if(all.some(a=>a.id!==id&&a.host===account.host&&a.username===account.username))throw setupError('DUPLICATE_ACCOUNT','This incoming account is already added.');
@@ -92,8 +95,8 @@ function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,asyn
   add:async input=>save(input),
   update:async input=>{if(!input||typeof input.id!=='string'||!input.id)throw setupError('SETTINGS_INVALID','Select an account to edit.');return save(input,input.id);},
   remove:async id=>{if(typeof id!=='string')throw new Error('Invalid account');await vault.update(all=>all.filter(a=>a.id!==id));return null;},
-  inbox:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return fetchInbox(a);},
-  body:async input=>{if(!input||!Number.isSafeInteger(input.uid)||input.uid<1||typeof input.validity!=='string')throw new Error('Invalid message');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return withInbox(a,async c=>{if(String(c.mailbox.uidValidity)!==input.validity)throw new Error('Refresh the inbox');const meta=await c.fetchOne(input.uid,{size:true},{uid:true});if(!meta||meta.size>2*1024*1024)return 'This message exceeds the 2 MB text preview limit.';const mail=await c.fetchOne(input.uid,{source:{start:0,maxLength:2*1024*1024}},{uid:true});const parsed=await simpleParser(mail.source,{skipHtmlToText:false,skipTextToHtml:true,skipImageLinks:true});return String(parsed.text||'No plain text content available.').slice(0,200000);});}
+  inbox:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return fetchInbox(await resolveAccount(a));},
+  body:async input=>{if(!input||!Number.isSafeInteger(input.uid)||input.uid<1||typeof input.validity!=='string')throw new Error('Invalid message');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return withInbox(await resolveAccount(a),async c=>{if(String(c.mailbox.uidValidity)!==input.validity)throw new Error('Refresh the inbox');const meta=await c.fetchOne(input.uid,{size:true},{uid:true});if(!meta||meta.size>2*1024*1024)return 'This message exceeds the 2 MB text preview limit.';const mail=await c.fetchOne(input.uid,{source:{start:0,maxLength:2*1024*1024}},{uid:true});const parsed=await simpleParser(mail.source,{skipHtmlToText:false,skipTextToHtml:true,skipImageLinks:true});return String(parsed.text||'No plain text content available.').slice(0,200000);});}
  };
  for(const [name,handler]of Object.entries(handlers))ipcMain.handle(`accounts:${name}`,async(event,input)=>{
   const contents=getWindow()?.webContents;
