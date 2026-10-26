@@ -3,14 +3,14 @@
 An open-source email client bringing existing accounts into one workspace, inspired by familiar Outlook and Apple Mail workflows.
 
 ## Status
-Foundation prototype, not a production email client. The browser demo can display optional fictional messages, supports unified/account inboxes and search, and previews rules. The desktop alpha now offers GUI-managed IMAP app-password accounts with OS-encrypted credentials and read-only recent inbox retrieval. It starts with no accounts; fictional sample mail is optional. OAuth, sending, full synchronization and live mail actions remain unimplemented. See [account setup and limits](docs/ACCOUNTS.md). Desktop packaging now targets Mac DMG and Windows setup EXE; see [desktop setup](docs/DESKTOP.md). Installer signing and platform acceptance testing remain pending.
+Foundation prototype, not a production email client. The browser demo can display optional fictional messages, supports unified/account inboxes and search, and previews rules. The desktop alpha now offers GUI-managed IMAP/SMTP app-password settings, automatic server discovery, OS-encrypted credentials and read-only recent inbox retrieval. SMTP settings are tested and saved; composing/sending remains unfinished. It starts with no accounts; fictional sample mail is optional. OAuth, sending, full synchronization and live mail actions remain unimplemented. See [account setup and limits](docs/ACCOUNTS.md). Desktop packaging now targets Mac DMG and Windows setup EXE; see [desktop setup](docs/DESKTOP.md). Installer signing and platform acceptance testing remain pending.
 
 ## Installable desktop apps (primary delivery)
 
 See [desktop setup and installer builds](docs/DESKTOP.md). Mac and Windows desktop apps take priority; hosted web delivery follows later. Both use bundled interface assets without requiring a running web server.
 
 ## Run the browser prototype locally
-Requires Node.js 22 or newer. No external packages or credentials are required.
+Requires Node.js 22 or newer. The browser demo needs no credentials. Install locked dependencies with `pnpm install --frozen-lockfile` before running tests or the desktop app.
 
 ```sh
 npm run dev

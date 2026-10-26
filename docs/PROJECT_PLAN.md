@@ -80,3 +80,13 @@ alpha.2 adds explicit native window framing and recovery, a Mailbox menu, contex
 | X03 trusted installers | Blocked on signing identities; existing release gate retained |
 
 Full A02/S01/U01 acceptance is not complete. See ACCOUNTS.md for support and evidence limits. Account removal never removes remote mail.
+
+## SMTP and automatic setup increment (2026-10-26)
+
+| Story | Acceptance | Status |
+|---|---|---|
+| A02c Incoming/outgoing settings | IMAP and SMTP host/port/security; shared or separate credentials; both verified before save; edit existing accounts without removal | Implemented; provider/OS credential acceptance pending |
+| A02d Automatic setup | Built-in presets and domain SRV lookup; source and auth guidance; manual fallback and overrides; no credential probing | Implemented; custom-domain breadth remains limited to supported SRV records |
+| U02 Compose/send | Sending account selection, drafts, attachments and duplicate-send recovery | Backlog; SMTP verification does not complete this story |
+
+See ACCOUNT_SETUP_PLAN.md and ACCOUNTS.md for the contract, security boundaries, source references and remaining acceptance work.

@@ -1,5 +1,6 @@
 document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'desktop' : 'browser';
 import { planRules, validateRule } from '/packages/core/rules.mjs';
+import { createAccountSetup } from '/apps/web/account-setup.mjs';
 import { emptyMailbox } from '/packages/core/mailboxes.mjs';
 let messages = [
 {id:'1',accountId:'work',from:'Morgan Chen',email:'morgan@studio.example',to:'alex@northstar.example',subject:'Brand direction — ready for your thoughts',body:'Hi there,\n\nI’ve pulled together the updated brand direction following our conversation on Monday. The new approach gives us a little more room to work with, while keeping the clarity we liked in the original.\n\nA few things to look at:\n\n• A simpler visual system across desktop and mobile\n• Warmer photography and a more considered color palette\n• A clearer hierarchy for the things that matter most\n\nWould love to hear what you think before we share it with the wider team on Friday. No rush today — tomorrow morning works well.\n\nThanks,\nMorgan\nDesign team',unread:true,time:'10:42 AM',date:'Today',folder:'inbox'},
@@ -102,16 +103,8 @@ mode.firstChild.textContent=window.desktopMail?'Desktop alpha':'Browser preview'
 if(!window.desktopMail)mode.querySelector('span').textContent='Run pnpm desktop for native Mac/Windows menus.';
 
 function closeWindowMenus(){document.querySelectorAll('.window-menu details').forEach(menu=>menu.open=false);}
-function openAccounts(mode='manage'){
- closeWindowMenus();el('accounts-title').textContent=mode==='add'?'Add Account':'Accounts';
- el('accounts-description').textContent='Add or remove your own accounts. Removing an account only removes its credentials and loaded mail from this app.';
- el('account-form').hidden=!window.desktopMail;
- el('account-list').replaceChildren();
- for(const a of accounts){const row=text('p',a.email+' ',el('account-list'));const remove=text('button','Remove account',row);remove.onclick=async()=>{if(!confirm('Remove '+a.email+' from Made Mail? Mail on the server will remain.'))return;await api('remove',a.id);await refreshAccounts();openAccountList();};}
- if(!window.desktopMail)text('p','Account connections are available in the installed desktop app.',el('account-list'));
- if(!el('accounts').open)el('accounts').showModal();
-}
-function openAccountList(){openAccounts();}
+const accountSetup=createAccountSetup({el,text,desktop:window.desktopMail,getAccounts:()=>accounts,refreshAccounts,closeWindowMenus});
+function openAccounts(mode='manage'){accountSetup.open(mode);}
 document.querySelectorAll('[data-open-accounts]').forEach(button=>button.onclick=()=>openAccounts(button.dataset.openAccounts));
 el('accounts-close').onclick=()=>el('accounts').close();
 window.desktopMail?.onAccountsCommand(openAccounts);
@@ -157,12 +150,6 @@ async function refreshAccounts(){
  if(loading)return;loading=true;el('refresh').setAttribute('aria-busy','true');demo=false;messages=[];view='inbox';render();
  try{const list=await api('list');if(!list)return;accounts=list;rebuildAccounts();for(const a of accounts){const inbox=await api('inbox',a.id);if(inbox)messages.push(...inbox);}messages.sort((a,b)=>new Date(b.receivedAt)-new Date(a.receivedAt));}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
 }
-el('account-form').onsubmit=async event=>{
- event.preventDefault();const form=event.target,submit=form.querySelector('[type="submit"]');submit.disabled=true;
- const input=Object.fromEntries(new FormData(form));el('account-status').textContent='Connecting securely…';
- try{const added=await api('add',input);if(added){form.reset();el('account-status').textContent='Account added. Loading inbox…';await refreshAccounts();openAccountList();}else el('account-status').textContent='Could not add account. Check your public IMAP server and app password. OAuth-only accounts are not supported yet.';}finally{form.elements.password.value='';input.password='';submit.disabled=false;}
-};
 el('demo-mode').onclick=()=>{el('accounts').close();if(loading)return;demo=true;messages=structuredClone(demoMessages);view='inbox';rebuildAccounts();render();};
-el('accounts').addEventListener('close',()=>{el('account-form').elements.password.value='';});
 rebuildAccounts();render();
 if(window.desktopMail)refreshAccounts();

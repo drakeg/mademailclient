@@ -10,7 +10,7 @@ const presets = [
 ];
 function srvEndpoint(records, protocol, port, security) {
  if(!Array.isArray(records)||records.length>100)return null;
- for(const record of [...records].sort((a,b)=>a.priority-b.priority||b.weight-a.weight)){
+ for(const record of records.filter(r=>r&&typeof r==='object').sort((a,b)=>a.priority-b.priority||b.weight-a.weight)){
   if(!record||!Number.isInteger(record.priority)||record.priority<0||record.priority>65535||record.port!==port)continue;
   try{return endpoint({host:typeof record.name==='string'?record.name.replace(/\.$/,''):null,port,security},protocol);}catch{/* Ignore malformed/unsupported records, never weaken TLS. */}
  }
@@ -24,15 +24,17 @@ async function discoverAccount(value, {resolveSrv,timeoutMs=3000}={}) {
  const resolver=resolveSrv?null:new Resolver({timeout:1500,tries:1});
  const query=resolveSrv||resolver.resolveSrv.bind(resolver);
  const services=[['imaps','imap',993,'tls'],['imap','imap',143,'starttls'],['submissions','smtp',465,'tls'],['submission','smtp',587,'starttls']];
- let timer;
  try {
-  const results=await Promise.race([
-   Promise.all(services.map(async([service,protocol,port,security])=>{try{return srvEndpoint(await query(`_${service}._tcp.${domain}`),protocol,port,security);}catch{return null;}})),
-   new Promise(resolve=>{timer=setTimeout(()=>resolve([null,null,null,null]),timeoutMs);})
-  ]);
+  const results=await Promise.all(services.map(async([service,protocol,port,security])=>{
+   let timer;
+   try{return await Promise.race([
+    Promise.resolve().then(()=>query(`_${service}._tcp.${domain}`)).then(records=>srvEndpoint(records,protocol,port,security)),
+    new Promise(resolve=>{timer=setTimeout(()=>resolve(null),timeoutMs);})
+   ]);}catch{return null;}finally{clearTimeout(timer);}
+  }));
   const imap=results[0]||results[1],smtp=results[2]||results[3];
   return {source:'Domain DNS SRV records',provider:null,requiresOAuth:false,imap:imap?{...imap,username:email}:null,smtp:smtp?{...smtp,username:email}:null,
    note:imap||smtp?'Review the suggested servers before connecting. DNS discovery does not verify ownership or authentication.':'No supported server settings found. Enter the settings supplied by your email provider manually.'};
- } finally {clearTimeout(timer);resolver?.cancel();}
+ } finally {resolver?.cancel();}
 }
 module.exports={discoverAccount};

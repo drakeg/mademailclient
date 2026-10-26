@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const { randomUUID } = require('node:crypto');
 const { publicAddress, publicHost, field, emailAddress, endpoint } = require('./mail-network.cjs');
 const { verifySmtp } = require('./smtp.cjs');
+const { discoverAccount } = require('./account-discovery.cjs');
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 function validateAccount(value) {
@@ -42,12 +43,54 @@ async function fetchInbox(account) {
   }return results.reverse();
  });
 }
-function registerAccounts(ipcMain,getWindow,vault) {
- let busy=false;
+function setupError(code,message) {return Object.assign(new Error(message),{publicCode:code,publicMessage:message});}
+function sameLogin(next,previous,protocol) {
+ if(!previous)return false;
+ const a=endpoint(next,protocol),b=endpoint(previous,protocol);
+ return a.host===b.host&&a.port===b.port&&a.security===b.security&&next.username===previous.username;
+}
+function editedAccount(input,previous) {
+ const value={...input};
+ if(previous&&value.password==='') {
+  if(!sameLogin(value,previous,'imap'))throw new Error('Re-enter incoming password after changing its server or username');
+  value.password=previous.password;
+ }
+ if(value.smtp!==undefined){
+  value.smtp={...value.smtp};
+  if(previous?.smtp&&value.smtp.useIncomingAuth&&input.password===''&&!sameLogin({...value.smtp,username:value.username},previous.smtp,'smtp'))throw new Error('Re-enter password after changing outgoing server or username');
+  if(!value.smtp.useIncomingAuth&&value.smtp.password===''){
+   if(!sameLogin(value.smtp,previous?.smtp,'smtp'))throw new Error('Re-enter SMTP password after changing its server or username');
+   value.smtp.password=previous.smtp.password;
+  }
+ } else if(previous?.smtp)value.smtp={...previous.smtp};
+ return validateAccount(value);
+}
+function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,async()=>{}),testSmtp=verifySmtp,discover=discoverAccount,now=Date.now}={}) {
+ let busy=false,discovering=false;
  let lastAdd=0;
+ async function save(input,id) {
+  if(!input||typeof input!=='object')throw setupError('SETTINGS_INVALID','Check the account settings.');
+  const all=await vault.list(),previous=id?all.find(a=>a.id===id):undefined;
+  if(id&&!previous)throw setupError('ACCOUNT_NOT_FOUND','Account no longer exists. Reopen Accounts.');
+  let account;
+  try{account=editedAccount(input,previous);}catch{throw setupError('SETTINGS_INVALID','Check required fields, TLS ports and passwords. Re-enter passwords when changing a server or username.');}
+  if(all.some(a=>a.id!==id&&a.host===account.host&&a.username===account.username))throw setupError('DUPLICATE_ACCOUNT','This incoming account is already added.');
+  if(now()-lastAdd<5000)throw setupError('RETRY_LATER','Wait five seconds before testing these settings again.');lastAdd=now();
+  try{await testInbox(account);}catch{throw setupError('IMAP_CHECK_FAILED','Incoming IMAP connection failed. Check the incoming server, app password, TLS settings and provider policy.');}
+  if(account.smtp)try{await testSmtp(account.smtp);}catch{throw setupError('SMTP_CHECK_FAILED','Outgoing SMTP connection failed. Check the outgoing server, app password, TLS settings and provider policy. No settings were saved.');}
+  account.id=id||randomUUID();
+  await vault.update(current=>{
+   if(id&&!current.some(a=>a.id===id))throw new Error('Account was removed');
+   if(current.some(a=>a.id!==id&&a.host===account.host&&a.username===account.username))throw new Error('Duplicate account');
+   return id?current.map(a=>a.id===id?account:a):[...current,account];
+  });
+  return accountSummary(account);
+ }
  const handlers={
   list:async()=> (await vault.list()).map(accountSummary),
-  add:async input=>{if(Date.now()-lastAdd<5000)throw new Error('Wait before trying again');lastAdd=Date.now();const account=validateAccount(input);await withInbox(account,async()=>{});if(account.smtp)await verifySmtp(account.smtp);account.id=randomUUID();await vault.update(all=>{if(all.some(a=>a.host===account.host&&a.username===account.username))throw new Error('Account already added');return [...all,account];});return accountSummary(account);},
+  discover:async email=>discover(email),
+  add:async input=>save(input),
+  update:async input=>{if(!input||typeof input.id!=='string'||!input.id)throw setupError('SETTINGS_INVALID','Select an account to edit.');return save(input,input.id);},
   remove:async id=>{if(typeof id!=='string')throw new Error('Invalid account');await vault.update(all=>all.filter(a=>a.id!==id));return null;},
   inbox:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return fetchInbox(a);},
   body:async input=>{if(!input||!Number.isSafeInteger(input.uid)||input.uid<1||typeof input.validity!=='string')throw new Error('Invalid message');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return withInbox(a,async c=>{if(String(c.mailbox.uidValidity)!==input.validity)throw new Error('Refresh the inbox');const meta=await c.fetchOne(input.uid,{size:true},{uid:true});if(!meta||meta.size>2*1024*1024)return 'This message exceeds the 2 MB text preview limit.';const mail=await c.fetchOne(input.uid,{source:{start:0,maxLength:2*1024*1024}},{uid:true});const parsed=await simpleParser(mail.source,{skipHtmlToText:false,skipTextToHtml:true,skipImageLinks:true});return String(parsed.text||'No plain text content available.').slice(0,200000);});}
@@ -55,8 +98,9 @@ function registerAccounts(ipcMain,getWindow,vault) {
  for(const [name,handler]of Object.entries(handlers))ipcMain.handle(`accounts:${name}`,async(event,input)=>{
   const contents=getWindow()?.webContents;
   if(!contents||event.sender!==contents||event.senderFrame!==contents.mainFrame||event.senderFrame.url!=='mademail://app/')return {ok:false,error:'Unauthorized request'};
-  if(busy)return {ok:false,error:'Another account operation is in progress. Please try again.'};busy=true;
-  try{return {ok:true,data:await handler(input)};}catch{return {ok:false,error:'Account operation failed. Check the server, app password, network, and OS credential storage. Existing accounts were preserved.'};}finally{busy=false;}
+  const discovery=name==='discover';
+  if(discovery?discovering:busy)return {ok:false,error:'Another account operation is in progress. Please try again.'};if(discovery)discovering=true;else busy=true;
+  try{return {ok:true,data:await handler(input)};}catch(error){return {ok:false,code:error.publicCode||'ACCOUNT_OPERATION_FAILED',error:error.publicMessage||'Account operation failed. Check the network and OS credential storage. Existing accounts were preserved.'};}finally{if(discovery)discovering=false;else busy=false;}
  });
 }
 module.exports={validateAccount,publicAddress,createVault,registerAccounts,withInbox,accountSummary};

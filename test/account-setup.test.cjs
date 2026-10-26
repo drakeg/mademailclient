@@ -53,3 +53,50 @@ test('DNS failure and timeout produce manual fallback without authenticating',as
   const r=await discoverAccount('sample@example.com',{resolveSrv,timeoutMs:10});assert.equal(r.imap,null);assert.equal(r.smtp,null);
  }
 });
+function accountHarness(seed=[], overrides={}) {
+ let records=structuredClone(seed),time=10000;
+ const handlers={},contents={mainFrame:{url:'mademail://app/'}};
+ const vault={list:async()=>structuredClone(records),update:async change=>{records=change(records);return records;}};
+ const checks=[];
+ registerAccounts({handle:(n,h)=>handlers[n]=h},()=>({webContents:contents}),vault,{now:()=>{time+=6000;return time;},testInbox:async a=>checks.push(['imap',a]),testSmtp:async s=>checks.push(['smtp',s]),...overrides});
+ return {checks,records:()=>records,invoke:(name,input)=>handlers['accounts:'+name]({sender:contents,senderFrame:contents.mainFrame},input)};
+}
+test('saving verifies both servers before persisting and returns only public settings',async()=>{
+ const h=accountHarness();const r=await h.invoke('add',{...incoming,smtp:outgoing});assert.equal(r.ok,true);assert.equal(h.records().length,1);assert.equal(h.checks.length,2);assert.equal(h.records()[0].smtp.password,'outgoing-secret');assert.equal(JSON.stringify(r).includes('secret'),false);
+ const listed=await h.invoke('list');assert.equal(listed.data[0].smtp.port,587);assert.equal(JSON.stringify(listed).includes('secret'),false);
+});
+test('failed SMTP verification leaves the vault unchanged and reports SMTP failure without raw error',async()=>{
+ const old={...incoming,id:'saved'};
+ const h=accountHarness([old],{testSmtp:async()=>{throw new Error('secret and provider response');}});
+ const r=await h.invoke('update',{...incoming,id:'saved',password:'',smtp:outgoing});
+ assert.equal(r.ok,false);assert.equal(r.code,'SMTP_CHECK_FAILED');assert.equal(r.error.includes('secret'),false);assert.deepEqual(h.records(),[old]);
+});
+test('legacy accounts can add SMTP without re-entering unchanged incoming password',async()=>{
+ const h=accountHarness([{...incoming,id:'saved'}]);
+ const r=await h.invoke('update',{...incoming,id:'saved',password:'',smtp:{...outgoing,useIncomingAuth:true,password:''}});
+ assert.equal(r.ok,true);assert.equal(r.data.id,'saved');assert.equal(h.records().length,1);assert.equal(h.records()[0].smtp.password,incoming.password);
+});
+test('blank edit passwords never transfer saved credentials to another host or username',async()=>{
+ for(const change of [{host:'other.example.com'},{username:'other-user'}]){
+  const h=accountHarness([{...incoming,id:'saved',smtp:outgoing}]);const r=await h.invoke('update',{...incoming,...change,id:'saved',password:'',smtp:outgoing});assert.equal(r.ok,false);assert.equal(h.checks.length,0);assert.equal(h.records()[0].host,incoming.host);
+ }
+ const h=accountHarness([{...incoming,id:'saved',smtp:outgoing}]);const r=await h.invoke('update',{...incoming,id:'saved',password:'',smtp:{...outgoing,host:'other.example.com',password:''}});assert.equal(r.ok,false);assert.equal(h.checks.length,0);
+});
+test('discovery IPC forwards only the email string and never reads the credential vault',async()=>{
+ const h=accountHarness([],{discover:async email=>({imap:null,smtp:null,note:email})});const r=await h.invoke('discover','sample@example.com');assert.equal(r.ok,true);assert.equal(r.data.note,'sample@example.com');assert.equal(h.records().length,0);
+});
+test('SMTP refuses a STARTTLS downgrade before exposing credentials (real local protocol fixture)',async()=>{
+ const net=require('node:net'),nodemailer=require('nodemailer');const commands=[],sockets=new Set();
+ const server=net.createServer(socket=>{
+  sockets.add(socket);socket.on('close',()=>sockets.delete(socket));socket.on('error',()=>{});socket.write('220 fixture ESMTP\r\n');let buffer='';
+  socket.on('data',data=>{buffer+=data;let i;while((i=buffer.indexOf('\r\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+2);commands.push(line.split(' ')[0]);if(line.startsWith('EHLO'))socket.write('250-fixture\r\n250 AUTH PLAIN LOGIN\r\n');else if(line==='STARTTLS')socket.write('454 TLS unavailable\r\n');else socket.write('500 unsupported\r\n');}});
+ });
+ await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+ try{await assert.rejects(verifySmtp(outgoing,{resolve:async()=>[{address:'8.8.8.8'}],createTransport:options=>nodemailer.createTransport({...options,host:'127.0.0.1',port:server.address().port})}));assert.ok(commands.includes('STARTTLS'));assert.equal(commands.includes('AUTH'),false);assert.equal(commands.includes('MAIL'),false);}finally{for(const s of sockets)s.destroy();await new Promise(resolve=>server.close(resolve));}
+});
+test('outgoing verification requires authentication even when a server omits AUTH capabilities',async()=>{
+ let options;await verifySmtp(outgoing,{resolve:async()=>[{address:'8.8.8.8'}],createTransport:o=>{options=o;return {verify:async()=>{},close:()=>{}};}});assert.equal(options.forceAuth,true);
+});
+test('DNS timeout on one service preserves settings already found for another',async()=>{
+ const r=await discoverAccount('sample@example.com',{timeoutMs:10,resolveSrv:async name=>name.startsWith('_imaps')?[{name:'imap.example.com',port:993,priority:0,weight:0}]:new Promise(()=>{})});assert.equal(r.imap?.host,'imap.example.com');assert.equal(r.smtp,null);
+});

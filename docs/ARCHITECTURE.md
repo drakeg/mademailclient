@@ -24,3 +24,7 @@ See adr/0001-foundation.md. See adr/0002-desktop-first.md. Future decisions: ide
 ## Desktop account adapter increment
 
 See [account contract and security boundaries](ACCOUNTS.md). Fixed main-process IPC now manages an encrypted account vault and read-only TLS IMAP inbox requests. This supersedes the previous statement that all provider connections and native credentials are unimplemented; OAuth and the target worker architecture remain proposed. No hosted account API exists.
+
+## Incoming/outgoing account settings
+
+The desktop account service now also stores encrypted SMTP settings, supports secret-safe account edits and verifies both connections before atomic persistence. Discovery is a separate credential-free IPC operation using built-in provider settings or domain DNS SRV, with manual fallback. The renderer's account-setup controller discards stale lookup results and never persists credentials. Transport validation is shared in mail-network.cjs; SMTP verification remains separate from any future message-sending adapter. See ACCOUNTS.md and ACCOUNT_SETUP_PLAN.md.
