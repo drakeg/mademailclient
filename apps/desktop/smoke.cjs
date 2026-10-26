@@ -29,7 +29,9 @@ function attachSmokeTest(app, window, Menu) {
         f.sameIncoming.checked=false;f.sameIncoming.dispatchEvent(new Event('change',{bubbles:true}));
         assert(!document.querySelector('#smtp-auth-fields').disabled && f.smtpPassword.required,'Separate SMTP credentials');
         f.password.value='fictional-secret';f.smtpPassword.value='fictional-outgoing';
+        const accountsClosed=new Promise(resolve=>document.querySelector('#accounts').addEventListener('close',resolve,{once:true}));
         document.querySelector('#accounts-close').click();
+        await accountsClosed;
         assert(f.password.value==='' && f.smtpPassword.value==='','Both passwords cleared on close');
         document.querySelector('[data-open-accounts="add"]').click();
         document.querySelector('#demo-mode').click();
