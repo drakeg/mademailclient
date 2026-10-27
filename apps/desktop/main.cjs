@@ -26,7 +26,7 @@ function sendCommand(channel,command) {
   } else {window.show();window.focus();window.webContents.send(channel,command);}
 }
 function createWindow() {
-  window = new BrowserWindow({show:!smokeTest,frame:true,titleBarStyle:'default',fullscreen:false,minimizable:true,maximizable:true,closable:true,width:1280,height:850,minWidth:720,minHeight:540,title:'Made Mail',backgroundColor:'#f6f7f5',webPreferences:{preload:join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+  window = new BrowserWindow({icon:join(__dirname,'icons/icon.png'),show:!smokeTest,frame:true,titleBarStyle:'default',fullscreen:false,minimizable:true,maximizable:true,closable:true,width:1280,height:850,minWidth:720,minHeight:540,title:'Made Mail',backgroundColor:'#f6f7f5',webPreferences:{preload:join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
   window.setMenuBarVisibility(true);
   if (process.platform === 'darwin') window.setWindowButtonVisibility(true);
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
@@ -37,6 +37,7 @@ function createWindow() {
   window.loadURL('mademail://app/');
 }
 if(primary)app.whenReady().then(()=>{
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(join(__dirname,'icons/icon.png'));
   protocol.handle('mademail',request=>assetResponse(join(__dirname,'../..'),request));
   session.defaultSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
   session.defaultSession.setPermissionCheckHandler(()=>false);

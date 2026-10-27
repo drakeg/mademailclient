@@ -57,3 +57,7 @@ Browser visual checks verified both layouts, ribbon navigation and reading-pane 
 ## Account-enabled source update
 
 On the existing `feat/mailboxes-and-account-menu` branch, close Made Mail, then run `git pull`, `pnpm install --frozen-lockfile`, and `pnpm desktop`. New runtime dependencies require the install step. Add/remove accounts through the GUI; [supported connections and current limits](ACCOUNTS.md). Source launch is for contributors; packaged users do not need pnpm or a running web server. A generated unsigned .app is not a trusted distributable release.
+
+## Application artwork
+
+Desktop builds use Made Mail’s own envelope icon for Mac bundles, Windows installers and Linux packages. See [icon sources and regeneration](../apps/desktop/icons/README.md). Existing installations need rebuilding/reinstalling; no automatic update is configured.
