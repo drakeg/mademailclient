@@ -9,3 +9,5 @@ Junk is shown for messages outside Junk/Spam and moves a demo message into Junk.
 Connected accounts remain read-only in this increment. Reply/Reply All/Forward are disabled until sending is implemented; live mutation controls are disabled with an explanation. Demo actions affect fictional data only. Interface placement and demo movement do not constitute a provider mutation adapter.
 
 Acceptance: native menus open Accounts and Rules; no sidebar command buttons or ribbon remain; Message-menu state matches the reading pane; selection changes update Junk/Not Junk and flag/read labels; returning a junk message preserves its account; no-selection/read-only actions stay disabled; source and packaged smoke tests cover these paths. Use the user's supplied Outlook/Mail references for familiar density and three-pane hierarchy, with Made Mail's own assets.
+
+The [Apple Mail REA inspection](research/APPLE_MAIL_REA.md) supplies shipped-resource evidence for native menus, settings concepts, message-command labels and layout resources. It does not establish exact runtime menu order or supersede the user’s preference for Outlook-style rules.

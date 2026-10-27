@@ -98,3 +98,7 @@ Menu placement is now a standing UI requirement: account setup in application/Fi
 ## Easier Gmail/Yahoo connection
 
 Provider selection and simple app-password forms are implemented. Google/Yahoo native Authorization Code + PKCE, encrypted tokens, refresh, identity-safe reconnect and platform callback wiring are implemented with synthetic tests. Publisher registrations are missing (owner confirmed); Yahoo mail access approval, Google consent/verification, and live-platform/provider acceptance remain open. A02b is therefore implemented pending external registration and acceptance, not Done. See PROVIDER_SIGN_IN.md for setup and evidence limits.
+
+## Apple Mail reference investigation (2026-10-27)
+
+REA static inspection of installed Mail 16.0 is complete and documented in [research/APPLE_MAIL_REA.md](research/APPLE_MAIL_REA.md), with target hashes, Evidence IDs, source-bound observations and explicit unknowns. It confirms useful settings/message-command concepts and provides evidence of system account integration, without recovering provider credentials or eliminating publisher registration requirements. Use the ordered follow-up in the report: provider acceptance, live folders/actions, compose, unified Settings, then the Outlook-style rule editor. Native runtime behavior and exact menu hierarchy remain unverified.
