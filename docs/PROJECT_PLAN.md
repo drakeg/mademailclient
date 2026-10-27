@@ -105,4 +105,4 @@ REA static inspection of installed Mail 16.0 is complete and documented in [rese
 
 ## Installer delivery follow-up (2026-10-27)
 
-Linux x64 AppImage/DEB joins the Mac ARM/Intel DMG and Windows x64 NSIS EXE build matrix. A local macOS source-build/install script packages, smoke-tests and copies to user Applications with backup of the previous bundle. See [INSTALLERS.md](INSTALLERS.md). X02 still requires real installation/upgrade/uninstall acceptance on each platform; X03 Mac distribution remains blocked on Developer ID/notarization. Linux CI runtime validation is tracked separately from DEB/AppImage installation acceptance.
+Linux x64 AppImage/DEB joins the Mac ARM/Intel DMG and Windows x64 NSIS EXE build matrix. A local macOS source-build/install script packages, smoke-tests and copies to /Applications with backup of the previous bundle. See [INSTALLERS.md](INSTALLERS.md). X02 still requires real installation/upgrade/uninstall acceptance on each platform; X03 Mac distribution remains blocked on Developer ID/notarization. Linux CI runtime validation is tracked separately from DEB/AppImage installation acceptance.

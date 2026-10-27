@@ -28,9 +28,15 @@ if [[ "${1:-}" == '--build-only' ]]; then
   echo "Built and smoke-tested: $PWD/$bundle"
   exit 0
 fi
-# User Applications avoids sudo. Preserve the existing app as a rollback copy.
-destination="$HOME/Applications"
-mkdir -p "$destination"
+# Install alongside other Mac apps. Elevate only file operations when necessary.
+destination="/Applications"
+install_command() {
+  if [[ -w "$destination" ]]; then "$@"; else sudo "$@"; fi
+}
+if [[ ! -w "$destination" ]]; then
+  echo "Administrator authorization is required to install into /Applications."
+  sudo -v
+fi
 target="$destination/Made Mail.app"
 if pgrep -f "$target/Contents/MacOS/Made Mail" >/dev/null; then
   echo 'Quit the installed Made Mail app, then run this script again.' >&2
@@ -39,13 +45,13 @@ fi
 backup=''
 if [[ -e "$target" ]]; then
   backup="$destination/Made Mail.backup.$(date +%Y%m%d%H%M%S).$$.app"
-  mv "$target" "$backup"
+  install_command mv "$target" "$backup"
 fi
-if ! ditto "$bundle" "$target"; then
-  rm -rf "$target"
-  if [[ -n "$backup" ]]; then mv "$backup" "$target"; fi
+if ! install_command ditto "$bundle" "$target"; then
+  install_command rm -rf "$target"
+  if [[ -n "$backup" ]]; then install_command mv "$backup" "$target"; fi
   exit 1
 fi
 echo "Installed local development build: $target"
-echo 'Open Made Mail from your user Applications folder. This is not a notarized public release.'
+echo 'Open Made Mail from Applications. This is not a notarized public release.'
 if [[ -n "$backup" ]]; then echo "Previous app retained at: $backup"; fi
