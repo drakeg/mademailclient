@@ -32,3 +32,7 @@ After the installed alpha was reported as damaged, Mac tag jobs now require stri
 The account adapter adds locked runtime IMAP/MIME dependencies. CI installs these into packaged apps; run production dependency auditing on updates. Account unit tests use synthetic clients and an injected encryption adapter; live credentials must never be added to CI. Packaged smoke tests assert empty startup and explicitly enter sample mode. Signing gates remain unchanged.
 
 OAuth packaging accepts public client IDs through repository Actions variables GOOGLE_DESKTOP_CLIENT_ID and YAHOO_PUBLIC_CLIENT_ID. Empty values keep browser sign-in unavailable. Do not put confidential client secrets or user tokens in the bundle. Packaged smoke checks provider selection and app-password fallback without opening real provider sign-in or requiring account credentials. Yahoo callback protocol installation and actual consent require separate acceptance.
+
+## Linux installer increment
+
+The desktop matrix also builds Linux x64 AppImage and DEB on Ubuntu 22.04, then launches the unpacked app under Xvfb with the sandbox enabled. Artifacts are uploaded only after the smoke test passes. Alpha draft collection now requires five exact installer filenames (two DMGs, Windows EXE, Linux AppImage and DEB). Package-manager installation, upgrade and clean-machine trust remain manual acceptance gates. See docs/INSTALLERS.md. No signing gate has been relaxed.

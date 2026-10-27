@@ -7,6 +7,8 @@ Foundation prototype, not a production email client. The browser demo can displa
 
 ## Installable desktop apps (primary delivery)
 
+Start with [installation instructions](docs/INSTALLERS.md): a local Mac build/install script, Windows setup EXE, and Linux DEB/AppImage workflow. Signed Mac downloads remain blocked on Developer ID and notarization.
+
 See [desktop setup and installer builds](docs/DESKTOP.md). Mac and Windows desktop apps take priority; hosted web delivery follows later. Both use bundled interface assets without requiring a running web server.
 
 ## Run the browser prototype locally

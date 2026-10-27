@@ -1,5 +1,7 @@
 # Desktop apps first
 
+For current installation steps and platform limits, see [INSTALLERS.md](INSTALLERS.md). The historical validation sections below record earlier increments.
+
 Mac and Windows installers are the primary product deliverables. Hosted web access is a later delivery track. The desktop app bundles the interface and rules code; it does not require a browser tab, hosted website or localhost development server.
 
 ## Development

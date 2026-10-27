@@ -102,3 +102,7 @@ Provider selection and simple app-password forms are implemented. Google/Yahoo n
 ## Apple Mail reference investigation (2026-10-27)
 
 REA static inspection of installed Mail 16.0 is complete and documented in [research/APPLE_MAIL_REA.md](research/APPLE_MAIL_REA.md), with target hashes, Evidence IDs, source-bound observations and explicit unknowns. It confirms useful settings/message-command concepts and provides evidence of system account integration, without recovering provider credentials or eliminating publisher registration requirements. Use the ordered follow-up in the report: provider acceptance, live folders/actions, compose, unified Settings, then the Outlook-style rule editor. Native runtime behavior and exact menu hierarchy remain unverified.
+
+## Installer delivery follow-up (2026-10-27)
+
+Linux x64 AppImage/DEB joins the Mac ARM/Intel DMG and Windows x64 NSIS EXE build matrix. A local macOS source-build/install script packages, smoke-tests and copies to user Applications with backup of the previous bundle. See [INSTALLERS.md](INSTALLERS.md). X02 still requires real installation/upgrade/uninstall acceptance on each platform; X03 Mac distribution remains blocked on Developer ID/notarization. Linux CI runtime validation is tracked separately from DEB/AppImage installation acceptance.
