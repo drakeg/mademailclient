@@ -51,3 +51,7 @@ Actions: https://github.com/drakeg/mademailclient/actions/workflows/desktop.yml 
 Matching alpha tags collect all five installers into a draft prerelease with SHA256SUMS.txt only after packaged smoke and Mac trust gates pass. No new public release is promised until those gates and native install acceptance pass. Mac downloadable DMG distribution remains blocked on signing/notarization; switching to PKG would not solve that trust requirement. See MAC_SIGNING.md and TESTING.md.
 
 Build target references: https://www.electron.build/v26/docs/targets/ and https://www.electron.build/v26/docs/linux/ .
+
+## Recorded build validation (2026-10-27)
+
+Commit a4f32dd: all 57 tests passed locally; syntax and shell syntax checks passed. GitHub run https://github.com/drakeg/mademailclient/actions/runs/40449245649 built all four platforms and passed each packaged synthetic launch smoke test. Windows EXE, Linux DEB/AppImage and both Mac DMGs were uploaded. The local Mac bundle built, but its direct sandboxed-tool smoke launch aborted; GitHub Mac launches succeeded. Neither result establishes downloaded Mac trust or native installer/upgrade/uninstall acceptance. The install script's copy/backup phase has not been executed on the user's Applications folder by this agent.
