@@ -1,4 +1,6 @@
 document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'desktop' : 'browser';
+import {createMailTools} from '/apps/web/mail-tools.mjs';
+import {createRuleEditor} from '/apps/web/rule-editor.mjs';
 import {createComposer,canSendAccount} from '/apps/web/composer.mjs';
 import { messageCommands, applyDemoMessageAction } from '/packages/core/message-actions.mjs';
 import { planRules, validateRule } from '/packages/core/rules.mjs';
@@ -21,7 +23,10 @@ messages.push(
 );
 const demoMessages=structuredClone(messages);
 messages=[];
-let demo=false, accounts=[], loading=false;
+let demo=false, accounts=[], loading=false,actionBusy=false;
+let savedFolderSettings=[];
+const bodyRequests=new Map();
+let accountQueue=Promise.resolve();
 const foldersByAccount=new Map(), folderPages=new Map();
 let view='inbox', unreadOnly=false, selectedId='1', noticeTimer;
 const el=id=>document.getElementById(id);
@@ -33,24 +38,34 @@ const folderNames={inbox:'Inbox',drafts:'Drafts',sent:'Sent Items',trash:'Delete
 for(const account of ['work','personal'])for(const folder of Object.keys(folderNames))names[`${account}:${folder}`]=`${accountName(account)} · ${folderNames[folder]}`;
 function mailboxScope(target=view){if(target.includes(':')){const [accountId,folder]=target.split(':');return {folder,accountId};}return ['work','personal'].includes(target)?{folder:'inbox',accountId:target}:{folder:target};}
 
+function roleOf(message){
+ if(!message)return undefined;
+ if(demo)return message?.folder;
+ const saved=savedFolderSettings.find(s=>s.id===message?.accountId)?.folders||{};
+ for(const role of ['trash','junk','archive'])if(saved[role]&&saved[role]===message?.path)return role;
+ const use=foldersByAccount.get(message?.accountId)?.find(f=>f.path===message?.path)?.specialUse;
+ return ({'\\Trash':'trash','\\Junk':'junk','\\Archive':'archive'})[use]||message?.folder;
+}
+function canModify(message){const a=accounts.find(a=>a.id===message?.accountId);return !actionBusy&&(demo||!!a&&(a.authType!=='oauth2'||a.provider==='google'));}
+function commandMessage(message){return message?{...message,folder:roleOf(message)}:message;}
 function inView(m,target=view){
  if(target==='work'||target==='personal')return m.accountId===target&&m.folder==='inbox';
  if(target.includes(':')){const [account,folder]=target.split(':');return m.accountId===account&&m.folder===folder;}
  if(target==='unread')return m.unread&&m.folder==='inbox';
- if(target==='flagged')return m.flagged&&!['trash','junk'].includes(m.folder);
+ if(target==='flagged')return m.flagged&&!['trash','junk'].includes(roleOf(m));
  return m.folder===target;
 }
 function visibleMessages(){const term=el('search').value.toLowerCase();return messages.filter(m=>inView(m)&&(!unreadOnly||m.unread)&&[m.from,m.subject,m.body].some(v=>v.toLowerCase().includes(term)));}
 function notice(value){el('notice').textContent=value;el('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{el('notice').hidden=true;},4500);}
 function renderReader(visible){
  const m=visible.find(m=>m.id===selectedId);el('reader').replaceChildren();
- const commands=messageCommands(m,{canModify:demo,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))});
+ const commands=messageCommands(commandMessage(m),{canModify:canModify(m),canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))});
  document.querySelectorAll('[data-action]').forEach(b=>{const state=commands[b.dataset.action];b.disabled=!state.enabled;b.hidden=!state.visible;b.title=state.reason||state.label;b.setAttribute('aria-label',state.label);const label=b.querySelector('span');if(label)label.textContent=state.label;else b.textContent=state.label;});
- window.desktopMail?.setMessageMenuState({selected:!!m,canModify:demo,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId)),junk:['junk','spam'].includes(m?.folder),unread:!!m?.unread,flagged:!!m?.flagged,trash:m?.folder==='trash',archive:m?.folder==='archive'});
- el('reader-capabilities').textContent=demo?'Sample message changes reset on reload. Sending is not available yet.':m?'Mail changes are read-only; plain-text replies use your account’s SMTP settings.':'Select a message to see available actions.';
+ window.desktopMail?.setMessageMenuState({selected:!!m,canModify:canModify(m),canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId)),junk:['junk','spam'].includes(roleOf(m)),unread:!!m?.unread,flagged:!!m?.flagged,trash:roleOf(m)==='trash',archive:roleOf(m)==='archive'});
+ el('reader-capabilities').textContent=demo?'Sample message changes reset on reload. Sending is not available yet.':m?(actionBusy?'Saving mailbox change…':canModify(m)?'Changes are saved to the mail server. Delete moves to Trash; use Folder Settings if a destination is missing.':'This authorization is read-only. Reconnect with a supported write grant or app-password account.'):'Select a message to see available actions.';
  el('reader-position').textContent=m?`${visible.indexOf(m)+1} of ${visible.length}`:'';
  if(!m){const empty=text('div','',el('reader'),'empty-state');icon('mail',empty);text('h2','No message selected',empty);text('p','Choose a message to read it here.',empty);return;}
- const label=text('div','',el('reader'),'reader-label');text('i','',label,`account-dot ${m.accountId}`);text('span',`${accountName(m.accountId)} / ${m.folder==='inbox'?'Inbox':m.folder}`,label);
+ const label=text('div','',el('reader'),'reader-label');text('i','',label,`account-dot ${m.accountId}`);text('span',`${accountName(m.accountId)} / ${m.folder==='inbox'?'Inbox':foldersByAccount.get(m.accountId)?.find(f=>f.path===m.path)?.name||m.folder}`,label);
  text('h2',m.subject,el('reader'));
  const sender=text('div','',el('reader'),'sender-card');text('div',m.from.split(' ').slice(0,2).map(w=>w[0]).join(''),sender,'avatar');const info=text('div','',sender,'sender-info');text('strong',m.from,info);text('p',`${m.email} → ${m.to}`,info);text('span',m.time,sender,'sender-date');
  text('div',m.body,el('reader'),'message-body');
@@ -63,34 +78,43 @@ function render(){
  const visible=visibleMessages();if(!visible.some(m=>m.id===selectedId))selectedId=visible[0]?.id;
  el('mailbox-title').textContent=names[view]||accountName(view.split(':')[0]);el('mailbox-summary').textContent=`${visible.length} message${visible.length===1?'':'s'} · ${visible.filter(m=>m.unread).length} unread`;
  el('messages').replaceChildren();let group;
- for(const m of visible){if(group!==m.date){group=m.date;text('div',group,el('messages'),'date-heading');}const b=text('button','',el('messages'),`message${m.unread?' unread':''}${selectedId===m.id?' selected':''}`);b.setAttribute('aria-pressed',String(selectedId===m.id));b.setAttribute('aria-label',`${m.from}: ${m.subject}, ${m.time}, ${accountName(m.accountId)}${m.unread?', unread':''}`);if(m.unread)text('span','',b,'unread-dot');text('span',m.from.split(' ').slice(0,2).map(w=>w[0].toUpperCase()).join(''),b,'message-avatar');const row=text('div','',b,'message-top');text('span',m.from,row,'sender');text('time',m.time,row);text('span',m.subject,b,'subject');text('span',m.body.replaceAll('\n',' '),b,'snippet');const meta=text('div','',b,'message-meta');text('i','',meta,`account-dot ${m.accountId}`);text('span',accountName(m.accountId),meta);if(m.hasAttachment)icon('paperclip',meta);if(m.flagged)icon('flag',meta);b.onclick=async()=>{selectedId=m.id;render();if(!demo&&m.uid&&!m.loaded){const r=await api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});if(r!==undefined){m.body=r;m.loaded=true;render();}}};}
+ for(const m of visible){if(group!==m.date){group=m.date;text('div',group,el('messages'),'date-heading');}const b=text('button','',el('messages'),`message${m.unread?' unread':''}${selectedId===m.id?' selected':''}`);b.setAttribute('aria-pressed',String(selectedId===m.id));b.setAttribute('aria-label',`${m.from}: ${m.subject}, ${m.time}, ${accountName(m.accountId)}${m.unread?', unread':''}`);if(m.unread)text('span','',b,'unread-dot');text('span',m.from.split(' ').slice(0,2).map(w=>w[0].toUpperCase()).join(''),b,'message-avatar');const row=text('div','',b,'message-top');text('span',m.from,row,'sender');text('time',m.time,row);text('span',m.subject,b,'subject');text('span',m.body.replaceAll('\n',' '),b,'snippet');const meta=text('div','',b,'message-meta');text('i','',meta,`account-dot ${m.accountId}`);text('span',accountName(m.accountId),meta);if(m.hasAttachment)icon('paperclip',meta);if(m.flagged)icon('flag',meta);b.onclick=async()=>{selectedId=m.id;render();await loadSelectedBody(true);}}
  if(!visible.length){const empty=text('div','',el('messages'),'empty-state');icon('inbox',empty);text('p',loading?'Loading inboxes…':accounts.length||demo?'No messages here.':'Choose File → Add Account… to get started.',empty);}
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-current',b.dataset.view===view?'page':'false');});
  document.querySelectorAll('[data-count]').forEach(n=>{const count=messages.filter(m=>inView(m,n.dataset.count)&&(['flagged','junk','trash'].includes(n.dataset.count)||m.unread)).length;n.textContent=count||'';});el('empty-folder').hidden=!demo||!['junk','trash'].includes(mailboxScope().folder);el('empty-folder').textContent=mailboxScope().folder==='junk'?'Empty Junk…':'Empty Deleted Items…';renderReader(visible);
 }
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;selectedId=null;render();});
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=async()=>{view=b.dataset.view;selectedId=null;render();await loadSelectedBody(true);});
 el('search').oninput=render;
 for(const [id,value] of [['filter-all',false],['filter-unread',true]])el(id).onclick=()=>{unreadOnly=value;el('filter-all').setAttribute('aria-pressed',String(!value));el('filter-unread').setAttribute('aria-pressed',String(value));render();};
 el('density').onclick=()=>{const compact=document.body.classList.toggle('compact');el('density').setAttribute('aria-label',compact?'Use comfortable message spacing':'Use compact message spacing');};
 el('refresh').onclick=()=>demo?notice('Sample mail; changes reset on reload.'):refreshAccounts();
 async function performMessageAction(action){
+ try{
  closeWindowMenus();const m=messages.find(m=>m.id===selectedId);
+ if(action==='folderSettings'){await mailTools.folderSettings();return;}
+ if(action==='actionHistory'){await mailTools.history();return;}
+ if(action==='move'){if(demo){notice('Move to Folder is available for connected accounts.');return;}mailTools.move(m);return;}
  if(action==='compose'){composer.open();return;}
  if(action==='outgoing'){await composer.showRecords();return;}
  if(['reply','replyAll','forward'].includes(action)&&!demo&&m){await loadSelectedBody();if(!m.loaded){notice('Load message text before replying or forwarding.');return;}composer.open(action,m);return;}
- if(!demo||!messageCommands(m,{canModify:demo,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))})[action]?.enabled)return;
+ if(!messageCommands(commandMessage(m),{canModify:canModify(m),canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))})[action]?.enabled)return;
+ if(!demo){
+  actionBusy=true;render();
+  try{const actual=action==='unread'?(m.unread?'markRead':'markUnread'):action==='flag'?(m.flagged?'unflag':'flag'):action;await mailTools.apply(m,actual);if(['archive','trash','junk','notJunk'].includes(action))messages=messages.filter(item=>item.id!==m.id);else if(action==='unread')m.unread=!m.unread;else if(action==='flag')m.flagged=!m.flagged;await refreshAccounts();notice('Mailbox change saved to the server.');}catch(e){notice(e.message);}finally{actionBusy=false;render();}return;
+ }
  messages=messages.map(item=>item.id===m.id?applyDemoMessageAction(item,action):item);
  render();notice(action==='notJunk'?'Sample message moved to Inbox.':action==='junk'?'Sample message moved to Junk.':action==='trash'?'Sample message moved to Deleted Items.':'Sample message updated.');
+ }catch(error){notice(error.message||'Mail action failed.');}
 }
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>performMessageAction(b.dataset.action));
 el('rules-close').onclick=()=>el('rules').close();
-el('rule-form').onsubmit=e=>{e.preventDefault();const data=new FormData(e.target);el('preview').replaceChildren();try{const rule=validateRule({id:'preview',enabled:true,accountId:data.get('account')==='all'?undefined:data.get('account'),match:'all',conditions:[{field:'subject',operator:'contains',value:data.get('term')}],actions:[{type:data.get('action'),value:data.get('value')}],stopProcessing:true});const plans=messages.filter(m=>m.folder==='inbox').flatMap(m=>planRules(m,[rule]));text('strong',`${plans.length} matching inbox message(s) · preview only`,el('preview'));for(const p of plans)text('p',`${messages.find(m=>m.id===p.messageId).subject} → ${p.actions[0].type}${p.actions[0].value?': '+p.actions[0].value:''}`,el('preview'));}catch(err){text('p',err.message,el('preview'));}};
+
 render();
 
 let pendingFolder = null;
 const mailboxLabel = folder => folder === 'junk' ? 'Junk' : 'Deleted Items';
 function requestEmpty(folder, accountId) {
- if(!demo){notice('Changing live mail is not available in this read-only alpha.');return;}
+ if(!demo){notice('Select messages and Delete to move them to Trash. Permanently emptying a connected mailbox is not available.');return;}
  if (!['junk','trash'].includes(folder)) return;
  const count=messages.filter(m=>m.folder===folder&&(!accountId||m.accountId===accountId)).length;
  if(!count){notice(`${mailboxLabel(folder)} is already empty.`);return;}
@@ -114,7 +138,7 @@ for(const button of document.querySelectorAll('[data-view]')){
 el('context-close').onclick=()=>el('mailbox-context').close();
 window.desktopMail?.onMailboxCommand(requestEmpty);
 const mode=document.querySelector('.local-note');
-mode.firstChild.textContent=window.desktopMail?'Desktop alpha':'Browser preview';
+mode.firstChild.textContent=window.desktopMail?'Made Mail':'Browser preview';
 if(!window.desktopMail)mode.querySelector('span').textContent='Run pnpm desktop for native Mac/Windows menus.';
 
 function closeWindowMenus(){document.querySelectorAll('.window-menu details').forEach(menu=>menu.open=false);}
@@ -124,7 +148,9 @@ document.querySelectorAll('[data-open-accounts]').forEach(button=>button.onclick
 el('accounts-close').onclick=()=>el('accounts').close();
 window.desktopMail?.onAccountsCommand(openAccounts);
 el('menu-density').onclick=()=>{closeWindowMenus();el('density').click();};
-el('menu-rules').onclick=()=>{closeWindowMenus();el('rules').showModal();};
+el('menu-rules').onclick=()=>{closeWindowMenus();ruleEditor.open();};
+el('menu-folder-settings').onclick=()=>performMessageAction('folderSettings');
+el('menu-action-history').onclick=()=>performMessageAction('actionHistory');
 document.querySelectorAll('[data-menu-empty]').forEach(button=>button.onclick=()=>{closeWindowMenus();requestEmpty(button.dataset.menuEmpty);});
 el('menu-about').onclick=()=>{closeWindowMenus();el('about').showModal();};el('about-close').onclick=()=>el('about').close();
 document.querySelectorAll('.window-menu details').forEach(menu=>menu.addEventListener('toggle',()=>{if(menu.open)document.querySelectorAll('.window-menu details').forEach(other=>{if(other!==menu)other.open=false;});}));
@@ -138,12 +164,14 @@ function setLayout(layout){
 }
 for(const layout of ['preview','columns'])el(`layout-${layout}`).onclick=()=>{closeWindowMenus();setLayout(layout);};
 window.desktopMail?.onMenuCommand(command=>{
- if(command==='rules'){closeWindowMenus();if(!el('rules').open)el('rules').showModal();}
+ if(command==='rules'){closeWindowMenus();ruleEditor.open();}
  else if(['preview','columns'].includes(command))setLayout(command);
  else if(command==='density')el('density').click();
  else performMessageAction(command);
 });
 
+const mailTools=createMailTools({el,text,getAccounts:()=>accounts,getFolders:id=>foldersByAccount.get(id)||[],refresh:refreshAccounts,notice});
+const ruleEditor=createRuleEditor({el,text,getAccounts:()=>accounts,getFolders:id=>foldersByAccount.get(id)||[],getMessages:()=>messages,isDemo:()=>demo,refresh:refreshAccounts,notice});
 const composer=createComposer({el,text,getAccounts:()=>accounts,notice});
 el('menu-compose').onclick=()=>{closeWindowMenus();composer.open();};
 el('menu-outgoing').onclick=()=>{closeWindowMenus();composer.showRecords();};
@@ -151,38 +179,46 @@ const demoTree=document.querySelector('.account-tree').innerHTML;
 function rebuildAccounts(){
  const tree=document.querySelector('.account-tree');tree.replaceChildren();
  if(demo){tree.innerHTML=demoTree;}else for(const a of accounts){const details=text('details','',tree,'mail-account');details.open=true;text('summary',a.email,details);for(const f of foldersByAccount.get(a.id)||[{path:'INBOX',name:'Inbox',key:'inbox'}]){const b=text('button',f.name,details,'nav-item');b.dataset.view=a.id+':'+f.key;names[b.dataset.view]=a.email+' · '+f.name;}}
- tree.querySelectorAll('[data-view]').forEach(b=>{b.onclick=async()=>{view=b.dataset.view;selectedId=null;render();if(!demo)await loadCurrentFolder();};const {folder,accountId}=mailboxScope(b.dataset.view);if(['junk','trash'].includes(folder))b.oncontextmenu=async event=>{event.preventDefault();if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder,accountId);}catch{notice('Use the Empty button in this mailbox.');}}else requestEmpty(folder,accountId);};});
- const select=document.querySelector('#rule-form [name="account"]');select.replaceChildren();const all=text('option','All accounts',select);all.value='all';for(const a of demo?[{id:'work',email:'alex@northstar.example'},{id:'personal',email:'alex@icloud.example'}]:accounts){const o=text('option',a.email,select);o.value=a.id;}
+ tree.querySelectorAll('[data-view]').forEach(b=>{b.onclick=async()=>{view=b.dataset.view;selectedId=null;render();if(!demo)await loadCurrentFolder(false,true);};const {folder,accountId}=mailboxScope(b.dataset.view);if(['junk','trash'].includes(folder))b.oncontextmenu=async event=>{event.preventDefault();if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder,accountId);}catch{notice('Use the Empty button in this mailbox.');}}else requestEmpty(folder,accountId);};});
+ const select=document.querySelector('#rule-form [name="account"]'),previousAccount=select.value;select.replaceChildren();const all=text('option',demo?'All accounts':'Choose account…',select);all.value='all';for(const a of demo?[{id:'work',email:'alex@northstar.example'},{id:'personal',email:'alex@icloud.example'}]:accounts){const o=text('option',a.email,select);o.value=a.id;}if([...select.options].some(o=>o.value===previousAccount))select.value=previousAccount;
  document.querySelector('.demo-status').textContent=demo?'Sample mail':accounts.length+' account(s)';
  el('connection-state').textContent=demo?'Demo · fictional mail':'Connected desktop preview';
  mode.querySelector('span').textContent=demo?'Fictional mail · changes reset on reload':'Live folders · refresh every minute while open';
 }
-async function api(name,input){try{const result=await window.desktopMail.accounts[name](input);if(!result.ok)throw new Error(result.error);return result.data;}catch(error){notice(error.message||'Account operation failed.');return undefined;}}
-async function loadSelectedBody(){
- const m=messages.find(m=>m.id===selectedId);
- if(!demo&&m?.uid&&!m.loaded){const body=await api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});if(body!==undefined){m.body=body;m.loaded=true;render();}}
+async function api(name,input){
+ const task=accountQueue.then(async()=>{try{const result=await window.desktopMail.accounts[name](input);if(!result.ok)throw new Error(result.error);return result.data;}catch(error){notice(error.message||'Account operation failed.');return undefined;}});accountQueue=task.catch(()=>{});return task;
+}
+async function loadSelectedBody(markRead=false){
+ const m=messages.find(m=>m.id===selectedId);if(demo||!m?.uid)return;
+ if(!m.loaded){
+  let pending=bodyRequests.get(m.id);
+  if(!pending){pending=api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});bodyRequests.set(m.id,pending);}
+  try{const body=await pending;if(body!==undefined){const current=messages.find(item=>item.id===m.id);if(current){current.body=body;current.loaded=true;}m.body=body;m.loaded=true;render();}}finally{bodyRequests.delete(m.id);}
+ }
+ if(markRead&&m.loaded&&m.unread&&canModify(m))try{await mailTools.apply(m,'markRead');m.unread=false;render();}catch(e){notice(e.message);}
 }
 async function fetchPage(accountId,path='INBOX',older=false){
  const key=accountId+':'+path,previous=folderPages.get(key);
  if(older&&!previous?.before)return;
  const result=await api('folder',{accountId,path,...(older?{before:previous.before,validity:previous.validity}:{})});
  if(!result)return;
+ if(result.ruleError)notice(result.ruleError);
  if(!older)messages=messages.filter(m=>m.accountId!==accountId||m.path!==path);
  const ids=new Set(messages.map(m=>m.id));messages.push(...result.messages.filter(m=>!ids.has(m.id)));
  folderPages.set(key,result);
 }
-async function loadCurrentFolder(older=false){
+async function loadCurrentFolder(older=false,markRead=false){
  if(loading||demo||!view.includes(':'))return;
  const [accountId,key]=view.split(':'),folder=foldersByAccount.get(accountId)?.find(f=>f.key===key);
  if(!folder)return;
  loading=true;el('refresh').setAttribute('aria-busy','true');
  try{await fetchPage(accountId,folder.path,older);}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
- await loadSelectedBody();
+ await loadSelectedBody(markRead);
 }
 async function refreshAccounts(){
  if(loading)return;loading=true;el('refresh').setAttribute('aria-busy','true');
  if(demo){messages=[];view='inbox';}demo=false;render();
- try{const list=await api('list');if(!list)return;accounts=list;messages=messages.filter(m=>accounts.some(a=>a.id===m.accountId));for(const a of accounts){const folders=await api('folders',a.id);if(folders)foldersByAccount.set(a.id,folders);await fetchPage(a.id);}rebuildAccounts();messages.sort((a,b)=>new Date(b.receivedAt)-new Date(a.receivedAt));}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
+ try{const list=await api('list');if(!list)return;accounts=list;try{savedFolderSettings=await mailTools.settings();}catch{}messages=messages.filter(m=>accounts.some(a=>a.id===m.accountId));for(const a of accounts){const folders=await api('folders',a.id);if(folders)foldersByAccount.set(a.id,folders);await fetchPage(a.id);}rebuildAccounts();messages.sort((a,b)=>new Date(b.receivedAt)-new Date(a.receivedAt));}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
  if(view.includes(':'))await loadCurrentFolder();else await loadSelectedBody();
 }
 el('load-older').onclick=()=>loadCurrentFolder(true);

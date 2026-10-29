@@ -13,6 +13,16 @@ function attachSmokeTest(app,window,Menu) {
  const waitMenu=async test=>{for(let n=0;n<100;n++){if(test())return;await new Promise(r=>setTimeout(r,20));}throw new Error('Native message-menu state timed out');};
  window.webContents.once('did-finish-load',async()=>{
   try{
+   // Exercise the packaged main-process rule planner/adapter without any real account or network.
+   const {createMailActions}=require('./mail-actions.cjs'),{createMailRules}=require('./mail-rules.cjs');
+   const memory=(rows=[])=>({list:async()=>structuredClone(rows),update:async change=>{rows=change(structuredClone(rows));}});
+   let moved=0;
+   const fixtureVault=memory([{id:'fixture-main'}]);
+   const adapter=createMailActions({vault:fixtureVault,journal:memory(),settings:memory(),connect:async(_account,run)=>run({capabilities:new Set(['MOVE']),mailbox:{uidValidity:'1'},list:async()=>[{path:'Trash',specialUse:'\\Trash'}],getMailboxLock:async()=>({release(){}}),fetchOne:async()=>({uid:1}),messageMove:async()=>{moved++;return true;}})});
+   const engine=createMailRules({vault:fixtureVault,store:memory(),cursors:memory(),actions:adapter,fetch:async()=>({validity:'1',messages:[{id:'fixture-main:1',accountId:'fixture-main',path:'INBOX',uid:1,validity:'1',subject:'Invoice',email:'sender@example.com'}]})});
+   await engine.save({name:'Packaged rule',accountId:'fixture-main',enabled:true,stopProcessing:true,match:'all',conditions:[{field:'subject',operator:'contains',value:'invoice'}],exceptions:[],actions:[{type:'trash'}]});
+   const planned=await engine.preview('fixture-main');if(planned.matches.length!==1)throw new Error('Packaged rule planner unavailable');
+   const executed=await engine.run(planned.token);if(executed.done!==1||moved!==1)throw new Error('Packaged rule adapter unavailable');
    const prefs=window.webContents.getLastWebPreferences();
    if(!prefs.sandbox||!prefs.contextIsolation||prefs.nodeIntegration)throw new Error('Unsafe renderer preferences');
    if(!window.isClosable()||!window.isMinimizable()||!window.isMaximizable()||window.isFullScreen())throw new Error('Native window controls unavailable');
@@ -67,7 +77,19 @@ function attachSmokeTest(app,window,Menu) {
     cf.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));await wait(()=>document.querySelector('#compose-status').textContent.includes('SMTP server accepted'));
     assert(submissions===1&&document.querySelector('#compose-send').disabled,'Accepted submission is locked');document.querySelector('#compose-close').click();
    `);
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:32}));
+   await run(`
+    const {createRuleEditor}=await import('/apps/web/rule-editor.mjs');let savedRules=[],applied=0;
+    const helper=(tag,value,parent)=>{const n=document.createElement(tag);n.textContent=value;parent.append(n);return n;};
+    const form=document.querySelector('#rule-form'),option=document.createElement('option');option.value='fixture';option.textContent='owner@example.com';form.elements.account.append(option);
+    const editor=createRuleEditor({el:id=>document.getElementById(id),text:helper,getAccounts:()=>[{id:'fixture',email:'owner@example.com'}],getFolders:()=>[{name:'Finance',path:'Finance'}],getMessages:()=>[],isDemo:()=>false,refresh:async()=>{},notice:message=>{if(message.includes('failed'))throw new Error(message);},client:{list:async()=>({ok:true,data:savedRules}),save:async rule=>{savedRules=[{...rule,id:'saved-fixture',revision:'one'}];return {ok:true,data:{id:'saved-fixture'}};},preview:async()=>({ok:true,data:{token:'fixture-token',total:1,matches:[{subject:'Invoice'}]}}),run:async()=>{applied++;return {ok:true,data:{done:1,failed:0}};}}});
+    await editor.open();form.elements.account.value='fixture';form.elements.ruleName.value='Saved invoice rule';form.elements.term.value='invoice';form.elements.action.value='move';form.elements.value.value='Finance';document.querySelector('#rule-save').click();
+    await wait(()=>document.querySelector('#saved-rules').textContent.includes('Saved invoice rule'));assert(savedRules[0].actions[0].value==='Finance','Rule persists selected server folder');
+    form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));await wait(()=>!document.querySelector('#rules-apply').hidden);document.querySelector('#rules-apply').click();await wait(()=>document.querySelector('#preview').textContent.includes('1 action(s) applied'));assert(applied===1,'Previewed rule explicitly applied');document.querySelector('#rules').close();
+    const {createMailTools}=await import('/apps/web/mail-tools.mjs');let folderSettings;
+    const tools=createMailTools({el:id=>document.getElementById(id),text:helper,getAccounts:()=>[{id:'fixture',email:'owner@example.com'}],getFolders:()=>[{name:'Deleted Items',path:'Trash'}],refresh:async()=>{},notice:()=>{},client:{getSettings:async()=>({ok:true,data:[]}),saveSettings:async input=>{folderSettings=input;return {ok:true,data:input};}}});
+    await tools.folderSettings();document.querySelector('#folder-trash').value='Trash';document.querySelector('#folder-settings-form').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));await wait(()=>document.querySelector('#folder-settings-status').textContent.includes('saved'));assert(folderSettings.folders.trash==='Trash','Folder mapping persisted');document.querySelector('#folder-settings').close();
+   `);
+   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:42}));
    clearTimeout(timeout);app.exit(0);
   }catch(error){fail(error.message);}
  });

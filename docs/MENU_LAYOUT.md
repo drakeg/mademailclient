@@ -1,3 +1,9 @@
+# Current 0.2.0 menu and mailbox contract
+
+The desktop uses native OS menus; the browser uses a top menu. Accounts belong in Made Mail/File, Rules and Folder Settings/Action History in Mailbox, and selected-message actions in Message/the reader. The sidebar contains folder navigation only.
+
+Connected writable accounts now support Move, Delete-to-Trash, Junk/Not Junk, Archive, read/unread and flags. Reply/reply-all/forward use SMTP. Rules are persisted and executable, with a separate existing-mail Preview/Apply step. Missing special folders are configured explicitly through Folder Settings. No permanent deletion is a fallback. See [MAIL_WORKFLOWS.md](MAIL_WORKFLOWS.md) for capabilities, persistence, limits and validation evidence. The older demo-only contract below is historical.
+
 # Menu and mailbox layout contract
 
 The desktop uses the OS application menu: macOS menu bar and Windows window menu. Browser delivery uses a keyboard-accessible top menu. Account setup belongs in the application/File menu; Rules belongs in Mailbox. Neither appears in the folder sidebar or a ribbon. No Calendar or To-Do placeholder is added until those features exist.

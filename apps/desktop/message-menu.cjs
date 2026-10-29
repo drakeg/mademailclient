@@ -1,4 +1,4 @@
-const actions=['reply','replyAll','forward','archive','trash','junk','notJunk','unread','flag'];
+const actions=['reply','replyAll','forward','move','archive','trash','junk','notJunk','unread','flag'];
 function validState(state) {
  return state&&typeof state==='object'&&['selected','canModify','junk','unread','flagged','trash','archive'].every(key=>typeof state[key]==='boolean');
 }

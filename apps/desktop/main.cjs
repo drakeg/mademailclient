@@ -1,4 +1,6 @@
 const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain, safeStorage, shell } = require('electron');
+const {createMailActions,registerMailActions}=require('./mail-actions.cjs');
+const {createMailRules,registerMailRules}=require('./mail-rules.cjs');
 const {createOutgoing,registerOutgoing}=require('./outgoing.cjs');
 const { createOAuthService } = require('./oauth-service.cjs');
 const { registerOAuthIPC } = require('./oauth-ipc.cjs');
@@ -59,7 +61,7 @@ if(primary)app.whenReady().then(()=>{
       window.show(); window.focus();
     },
     mailboxCommand: folder => { if (window && !window.isDestroyed()) window.webContents.send('mailbox:empty', folder); },
-    showAbout: () => dialog.showMessageBox({ type: 'info', title: 'About Made Mail', message: 'Made Mail', detail: `Version ${app.getVersion()}\nDesktop alpha. IMAP inbox reading; plain-text SMTP sending. Live mail changes remain unavailable.` }),
+    showAbout: () => dialog.showMessageBox({ type: 'info', title: 'About Made Mail', message: 'Made Mail', detail: `Version ${app.getVersion()}\nIMAP mail, SMTP sending, saved rules and mailbox actions.` }),
   })));
   registerMessageMenuState(ipcMain,Menu,()=>window);
   registerMailboxMenu(ipcMain, Menu, () => window);
@@ -68,7 +70,11 @@ if(primary)app.whenReady().then(()=>{
   const config={google:{clientId:process.env.MADEMAIL_GOOGLE_CLIENT_ID||bundled.google?.clientId||''},yahoo:{clientId:process.env.MADEMAIL_YAHOO_CLIENT_ID||bundled.yahoo?.clientId||''}};
   oauthService=createOAuthService({vault,config,nativeCallbackReady:app.isPackaged&&app.isDefaultProtocolClient('com.mademailclient.auth'),openExternal:url=>shell.openExternal(url),testInbox:a=>withInbox(a,async()=>{}),testSmtp:verifySmtp});
   registerOAuthIPC(ipcMain,()=>window,oauthService);
-  registerAccounts(ipcMain,()=>window,vault,{resolveAccount:account=>oauthService.prepare(account)});
+  const encrypted=name=>createVault(join(app.getPath('userData'),name+'.enc'),safeStorage);
+  const mailActions=createMailActions({vault,journal:encrypted('mail-actions'),settings:encrypted('folder-settings'),resolveAccount:a=>oauthService.prepare(a)});
+  const mailRules=createMailRules({vault,store:encrypted('rules'),cursors:encrypted('rule-cursors'),actions:mailActions,resolveAccount:a=>oauthService.prepare(a)});
+  registerMailActions(ipcMain,()=>window,mailActions);registerMailRules(ipcMain,()=>window,mailRules);
+  registerAccounts(ipcMain,()=>window,vault,{resolveAccount:account=>oauthService.prepare(account),onInbox:(account,page)=>mailRules.processIncoming(account,page)});
   const journal=createVault(join(app.getPath('userData'),'outgoing.enc'),safeStorage);
   registerOutgoing(ipcMain,()=>window,createOutgoing({vault,journal,resolveAccount:account=>oauthService.prepare(account)}));
   createWindow();

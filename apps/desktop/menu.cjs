@@ -38,6 +38,8 @@ function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, re
       { label: 'Restore Standard Window', accelerator: 'CmdOrCtrl+Shift+0', click: restoreWindow },
     ] },
     { label: mac ? 'Mailbox' : '&Mailbox', submenu: [
+      {label:'Folder Settings…',click:()=>messageCommand('folderSettings')},
+      {label:'Action History…',click:()=>messageCommand('actionHistory')},
       { id:'mailbox:rules', label:'Rules…', click:rulesCommand },
       { type:'separator' },
       { label: 'Empty Junk…', click: () => mailboxCommand('junk') },
@@ -46,7 +48,7 @@ function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, re
     { label:mac?'Message':'&Message', submenu:[
       ...[['reply','Reply'],['replyAll','Reply All'],['forward','Forward']].map(([action,label])=>({id:'message:'+action,label,enabled:false,click:()=>messageCommand(action)})),
       {type:'separator'},
-      ...[['archive','Archive'],['trash','Delete'],['junk','Junk'],['notJunk','Not Junk'],['unread','Mark as Unread'],['flag','Flag']].map(([action,label])=>({id:'message:'+action,label,enabled:false,visible:action!=='notJunk',click:()=>messageCommand(action)})),
+      ...[['move','Move to Folder…'],['archive','Archive'],['trash','Delete'],['junk','Junk'],['notJunk','Not Junk'],['unread','Mark as Unread'],['flag','Flag']].map(([action,label])=>({id:'message:'+action,label,enabled:false,visible:action!=='notJunk',click:()=>messageCommand(action)})),
     ] },
     ...(mac ? [{ role: 'windowMenu' }] : []),
     { role: 'help', label: mac ? 'Help' : '&Help', submenu: [

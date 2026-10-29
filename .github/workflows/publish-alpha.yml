@@ -43,4 +43,4 @@ jobs:
           else
             gh api "repos/$GH_REPO/git/refs" -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA"
           fi
-          gh release create "$RELEASE_TAG" release-assets/* --verify-tag --prerelease --latest=false --title "Made Mail $RELEASE_TAG — send/receive preview" --notes-file docs/releases/alpha-notes.md
+          gh release create "$RELEASE_TAG" release-assets/* --verify-tag --prerelease --latest=false --title "Made Mail $RELEASE_TAG — mail workflow preview" --notes-file docs/releases/alpha-notes.md

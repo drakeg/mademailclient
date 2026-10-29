@@ -3,7 +3,7 @@
 An open-source email client bringing existing accounts into one workspace, inspired by familiar Outlook and Apple Mail workflows.
 
 ## Status
-Experimental desktop preview. GUI account setup now connects supported IMAP/SMTP accounts; real server folders, paged reads, one-minute inbox polling, plain-text compose/reply/forward, and encrypted local drafts/submission records are implemented. Live-provider acceptance is pending. Attachments, server drafts, offline caching and live message mutations remain unfinished. Browser OAuth needs publisher registrations. See [send/receive contract and limits](docs/SEND_RECEIVE.md), [account setup](docs/ACCOUNTS.md), and [provider sign-in prerequisites](docs/PROVIDER_SIGN_IN.md). Not ready for full-time use without acceptance testing. Desktop builds cover Mac, Windows and Linux; signed Mac downloads remain blocked on Developer ID/notarization.
+Version 0.2.0 adds live mailbox actions and saved rules to the connected IMAP/SMTP workflow: read, reply/forward, send, move, Delete-to-Trash, Archive, Junk/Not Junk, read/unread and flags. Accounts, folder mappings, local drafts and rules are saved with OS encryption. Rules support ordered conditions/exceptions, preview/apply for existing recent mail, and newly received inbox processing while the app is open. See [current mail workflow contract](docs/MAIL_WORKFLOWS.md) and [downloads](https://github.com/drakeg/mademailclient/releases). Real-provider acceptance remains pending. Attachments, server drafts, offline caching and permanent purge are not implemented. OAuth browser sign-in still needs publisher registrations. Trusted Mac downloads remain blocked on Developer ID/notarization; source installation is available.
 
 ## Installable desktop apps (primary delivery)
 

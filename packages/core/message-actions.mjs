@@ -2,10 +2,11 @@ export function messageCommands(message,{canModify=false,canSend=false}={}) {
  const junk=['junk','spam'].includes(message?.folder);
  const modify=!!message&&canModify;
  const sending='Configure an outgoing account to send mail.';
- const unavailable=message?'Connected accounts are read-only in this alpha.':'Select a message first.';
+ const unavailable=message?'This action is unavailable for this message or account.':'Select a message first.';
  const command=(label,enabled=false,visible=true,reason=unavailable)=>({label,enabled,visible,reason:enabled?'':reason});
  return {
   reply:command('Reply',!!message&&canSend,true,sending),replyAll:command('Reply All',!!message&&canSend,true,sending),forward:command('Forward',!!message&&canSend,true,sending),
+  move:command('Move to Folder…',modify),
   archive:command('Archive',modify&&message.folder!=='archive'),trash:command('Delete',modify&&message.folder!=='trash'),
   junk:command('Junk',modify&&!junk,!junk),notJunk:command('Not Junk',modify&&junk,junk),
   unread:command(message?.unread?'Mark as Read':'Mark as Unread',modify),

@@ -1,24 +1,24 @@
-# Made Mail 0.1.0-alpha.5 — send/receive preview
+# Made Mail 0.2.0 — working mailbox actions and saved rules
 
-This is an experimental milestone, not a full-time-client recommendation. Test with disposable accounts first. No live-provider acceptance is claimed by synthetic tests.
+This milestone adds the core mailbox operations missing from alpha.5. It is a GitHub prerelease pending real-provider/platform acceptance; changing its version does not claim full-time readiness.
 
-## Added
-- Actual IMAP server folders, 50-message pages, older-message loading in account folders and inbox polling every minute while open.
-- File → New Message; plain-text SMTP sending, reply/reply-all and text forwarding, with a sending-account selector.
-- Encrypted local drafts and submission records under File → Local Drafts and Sending Status. These are separate from server Drafts.
-- Durable single-attempt submission records. Unknown outcomes remain locked across restarts; the app never automatically resubmits them.
-- Sent-folder copies use the server's special-use Sent folder. Gmail SMTP manages its own copy. Copy failure never resends mail.
-- Original Made Mail desktop icon and Linux AppImage/DEB packages.
+## What now works
+- Read connected message bodies without competing with background refresh. Selecting a message saves its read flag on the server.
+- Delete-to-Trash, Move, Archive, Junk/Not Junk, read/unread and flags in the reader and native menus for writable IMAP accounts.
+- Saved account/server credentials (retained across updates) and explicit saved Trash/Junk/Archive folder mappings.
+- Saved rules with all/any conditions, exceptions, account scope, ordering, enable/disable and stop processing. Actions: move, Junk, Trash, read/unread or flag.
+- Preview and explicitly apply saved rules to recent existing inbox mail. Enabled rules process newly received inbox mail while the app is open.
+- Durable mailbox-action history and deduplication, with no blind retry of unknown outcomes and no permanent-delete fallback.
+- Compose, reply/reply-all, plain-text forward, encrypted local drafts and SMTP sending status from the previous release.
 
-## Downloads and installation
-- Windows x64: unzip the setup download if necessary and run the `.exe`. It is unsigned; OS reputation/installation acceptance is pending. Do not disable OS security protections.
-- Linux x64: install the `.deb` with `sudo apt install ./Made-Mail-0.1.0-alpha.5-linux-amd64.deb` on supported Debian/Ubuntu, or make the AppImage executable and run it. Keep the Electron sandbox enabled. A supported secret service is required for encrypted credentials.
-- macOS: **no ready-to-install Mac binary is included in this release**. Developer ID signing/notarization is still unavailable; the old unsigned DMG is not fixed. Build this release's reviewed source on your Mac with Node 22+, pnpm 11.25.0, and `pnpm desktop:install:mac`. This copies the app to /Applications; see docs/INSTALLERS.md. GitHub's source archives contain source, not a built app.
-- SHA256SUMS.txt covers the three declared Windows/Linux installer files. Only installers from the successful build for this exact source commit are published.
+## Install / update
+Windows x64 setup EXE and Linux x64 DEB/AppImage are below, with SHA256SUMS.txt. Installers are unsigned previews; clean-machine acceptance and publisher trust remain pending. Keep OS protections and the Electron sandbox enabled.
 
-## Limits
-No attachments in outgoing mail, server drafts, offline cache, IDLE push, full-mailbox search, live move/Junk/Trash/flags, or automatic rules execution yet. Reading is a bounded plain-text preview (2 MB source / 200,000 text characters). Loaded-message search does not search the full server mailbox. Sequence-based older-page navigation can shift when another client deletes mail; refresh to reconcile.
+On Debian/Ubuntu: `sudo apt install ./Made-Mail-0.2.0-linux-amd64.deb`. The AppImage filename uses `linux-x86_64`.
 
-SMTP acceptance is not proof of delivery. Partial recipient rejection and missing Sent copies are shown. If submission outcome is unknown, check provider Sent and confirm receipt before composing another copy. Do not blindly resend. Sending records hold message content encrypted locally until explicitly removed; uninstalling does not purge the profile.
+Mac: no trusted ready-to-install Mac binary is included. Quit Made Mail, run `git pull` in the existing checkout and then `pnpm desktop:install:mac` (Node 22+, pnpm 11.25.0). It copies the app into /Applications and preserves the existing app as a backup. Account/rule data is retained in the existing profile. Confirm About Made Mail says 0.2.0. Source ZIP/TAR assets are not built apps.
 
-Gmail/Yahoo browser authorization still needs publisher registrations and approval. Yahoo's current OAuth grant is read-only and cannot send; app-password SMTP may be used where the provider permits it. Work-provider policies may prohibit app passwords.
+## Important limits
+Read-only authorizations stay read-only. A server must advertise IMAP MOVE for moving/deleting; unsupported servers fail clearly. Use Mailbox → Folder Settings if special folders are missing. Rules do not permanently delete or automatically reply. Automatic rules run only while open; the initial baseline leaves existing mail alone. Preview/Apply handles 50 recent inbox messages; automatic catch-up is bounded to 5,000. See docs/MAIL_WORKFLOWS.md.
+
+Outgoing attachments, attachment forwarding, server drafts, offline caching, full-server search and permanent emptying of Trash are not implemented. Browser sign-in still requires publisher registrations. The agent's automated/browser checks use synthetic mail and do not claim live-provider acceptance. Test with a disposable account before relying on the app as your only client.

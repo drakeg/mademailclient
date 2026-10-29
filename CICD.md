@@ -40,3 +40,7 @@ The desktop matrix also builds Linux x64 AppImage and DEB on Ubuntu 22.04, then 
 ## Requested milestone publication
 
 After the exact source commit passes Desktop installers, pushing that commit to a new release/milestone-* branch runs Publish tested desktop preview downloads. It selects a successful push-triggered installer run for the exact SHA, downloads only Windows/Linux artifacts, validates the version/three declared filenames and checksums, creates a non-overwriting matching source tag, and publishes a prerelease (never latest). No signing secrets are exposed. This replaces the alpha.1-specific publisher. Mac binaries are excluded, not exempted from trust checks; the existing all-platform tag/draft path retains its Mac trust gate. Reusing an existing published version fails rather than overwriting its assets. Bump the alpha version and rewrite release notes for each milestone.
+
+## 0.2.0 workflow milestone
+
+The platform-scoped asset validator accepts matching numeric versions as well as alpha/beta prereleases. The requested milestone publisher still emits a GitHub prerelease, downloads only installer artifacts from a successful four-platform push run for the exact SHA, and excludes untrusted Mac binaries. New packaged smoke coverage checks saved-rule editing/preview/apply and saved folder mappings with synthetic services. Tests do not submit live mail.

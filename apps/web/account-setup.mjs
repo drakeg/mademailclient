@@ -32,7 +32,7 @@ export function createAccountSetup({el,text,desktop,getAccounts,refreshAccounts,
  function accountList(){
   const list=el('account-list');list.replaceChildren();
   for(const account of getAccounts()){
-   const row=text('div','',list,'saved-account');text('strong',account.email,row);text('small',account.authType==='oauth2'?`Browser-authorized ${providerNames[account.provider]||account.provider} · read-only inbox`:account.smtp?'Incoming and outgoing configured':'Incoming only · add outgoing settings with Edit',row);
+   const row=text('div','',list,'saved-account');text('strong',account.email,row);text('small',account.authType==='oauth2'?`Browser-authorized ${providerNames[account.provider]||account.provider} · account settings saved`:account.smtp?'Incoming and outgoing configured':'Incoming only · add outgoing settings with Edit',row);
    const actions=text('div','',row,'saved-account-actions');
    const edit=text('button',account.authType==='oauth2'?'Reconnect':'Edit settings',actions);edit.onclick=()=>{if(!saving){reset(account);el('provider-picker').hidden=true;if(account.authType==='oauth2'){selectProvider(account.provider,account);}else{el('provider-methods').hidden=true;form.hidden=false;fields.email.focus();}}};
    const remove=text('button','Remove account',actions);remove.onclick=async()=>{
@@ -45,7 +45,7 @@ export function createAccountSetup({el,text,desktop,getAccounts,refreshAccounts,
  }
  function open(mode='manage'){
   closeWindowMenus();el('accounts-title').textContent=mode==='add'?'Add Account':'Accounts';
-  el('accounts-description').textContent='Set up incoming and outgoing mail. Removing an account here leaves mail on its server.';
+  el('accounts-description').textContent='Server settings and credentials are saved securely for the next launch. Removing an account here leaves mail on its server.';
   if(!saving){reset();accountList();selectedProvider=null;el('provider-picker').hidden=!desktop;el('provider-methods').hidden=true;form.hidden=true;loadProviders();}
   if(!dialog.open)dialog.showModal();
   if(mode==='add'&&desktop&&!saving)el('provider-picker').querySelector('button').focus();
@@ -109,7 +109,7 @@ export function createAccountSetup({el,text,desktop,getAccounts,refreshAccounts,
   const state=providerStates.find(p=>p.id===selectedProvider);
   el('provider-browser-signin').disabled=oauthPending||!state?.available;el('provider-browser-signin').title=state?.reason||'Publisher app registration is required.';
   el('provider-availability').textContent=state?.reason||'Browser sign-in needs publisher app registration. App-password setup is available below.';
-  el('provider-permissions').textContent=selectedProvider==='google'?'Google IMAP authorization requests full mail access. This alpha still reads mail only.':'Yahoo authorization requests identity and read-only mail access.';
+  el('provider-permissions').textContent=selectedProvider==='google'?'Google IMAP authorization requests full mail access. Connected Google mail supports reading, sending and mailbox actions.':'Yahoo authorization requests identity and read-only mail access.';
  }
  function selectProvider(id,account=null){
   if(saving)return;el('provider-browser-signin').hidden=false;selectedProvider=id;editing=account;clearPasswords();

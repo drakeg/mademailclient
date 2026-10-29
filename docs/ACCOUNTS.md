@@ -1,3 +1,5 @@
+> 0.2.0 supersedes the earlier read-only/preview-only mailbox descriptions. See [MAIL_WORKFLOWS.md](MAIL_WORKFLOWS.md) for live actions, saved rules and folder mappings.
+
 > Current alpha.5 update: real folders, paged reads, polling and plain-text sending are now implemented. The older read-only descriptions below are historical; see [SEND_RECEIVE.md](SEND_RECEIVE.md) for the current contract and remaining limits.
 
 # Desktop account connections

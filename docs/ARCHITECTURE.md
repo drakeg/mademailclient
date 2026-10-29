@@ -28,3 +28,7 @@ See [account contract and security boundaries](ACCOUNTS.md). Fixed main-process 
 ## Incoming/outgoing account settings
 
 The desktop account service now also stores encrypted SMTP settings, supports secret-safe account edits and verifies both connections before atomic persistence. Discovery is a separate credential-free IPC operation using built-in provider settings or domain DNS SRV, with manual fallback. The renderer's account-setup controller discards stale lookup results and never persists credentials. Transport validation is shared in mail-network.cjs; SMTP verification remains separate from any future message-sending adapter. See ACCOUNTS.md and ACCOUNT_SETUP_PLAN.md.
+
+## 0.2.0 desktop mutation and rule worker
+
+mail-actions.cjs is the authorized writable IMAP boundary, with same-account destination validation, mandatory server MOVE capability and encrypted durable operation claims. mail-rules.cjs persists definitions/cursors and uses the pure core planner; it processes new inbox envelopes during foreground polling and supports single-use recent-mail preview/apply. There is no always-on backend worker. Both services have fixed same-origin/main-frame IPC and no generic filesystem/network interface. See MAIL_WORKFLOWS.md for state transitions, deduplication scope and acceptance limits.

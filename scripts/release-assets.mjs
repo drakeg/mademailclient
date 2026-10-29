@@ -1,7 +1,7 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const pkg = JSON.parse(await readFile('package.json','utf8'));
-if (process.env.RELEASE_TAG !== `v${pkg.version}` || !pkg.version.includes('-alpha.')) throw new Error('Tag must match the alpha package version');
+if (process.env.RELEASE_TAG !== `v${pkg.version}` || !/^\d+\.\d+\.\d+(?:-(?:alpha|beta)\.\d+)?$/.test(pkg.version)) throw new Error('Tag must match the package version');
 const names = (await readdir('release-assets')).filter(n=>/\.(dmg|exe|AppImage|deb)$/.test(n)).sort();
 const allExpected = [`Made-Mail-${pkg.version}-mac-arm64.dmg`,`Made-Mail-${pkg.version}-mac-x64.dmg`,`Made-Mail-${pkg.version}-win-x64.exe`,`Made-Mail-${pkg.version}-linux-x86_64.AppImage`,`Made-Mail-${pkg.version}-linux-amd64.deb`].sort();
 const scope=process.env.RELEASE_PLATFORMS||'all';

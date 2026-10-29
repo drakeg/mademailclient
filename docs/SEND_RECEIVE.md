@@ -1,3 +1,5 @@
+> 0.2.0 supersedes the earlier read-only/preview-only mailbox descriptions. See [MAIL_WORKFLOWS.md](MAIL_WORKFLOWS.md) for live actions, saved rules and folder mappings.
+
 # Send/receive milestone contract
 
 The alpha.5 desktop increment adds live folder browsing, polling and plain-text SMTP composition. Account setup remains native-menu driven. No real mail is used in automated checks or sent by the agent.

@@ -33,3 +33,11 @@ test('explicit Windows/Linux preview scope cannot accidentally collect a Mac bin
   await writeFile(join(cwd,'release-assets/Made-Mail-0.1.0-alpha.5-mac-arm64.dmg'),'unsigned');assert.notEqual(run().status,0);
  }finally{await rm(cwd,{recursive:true,force:true});}
 });
+test('numeric milestone versions collect the declared native installer filenames',async()=>{
+ const cwd=await mkdtemp(join(tmpdir(),'mademail-milestone-'));
+ try{
+  await mkdir(join(cwd,'release-assets'));await writeFile(join(cwd,'package.json'),JSON.stringify({version:'0.2.0'}));
+  for(const suffix of ['win-x64.exe','linux-x86_64.AppImage','linux-amd64.deb'])await writeFile(join(cwd,'release-assets','Made-Mail-0.2.0-'+suffix),'fixture');
+  const result=spawnSync(process.execPath,[script],{cwd,env:{...process.env,RELEASE_TAG:'v0.2.0',RELEASE_PLATFORMS:'windows-linux'}});assert.equal(result.status,0,result.stderr.toString());
+ }finally{await rm(cwd,{recursive:true,force:true});}
+});

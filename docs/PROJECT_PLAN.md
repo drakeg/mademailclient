@@ -112,3 +112,9 @@ Linux x64 AppImage/DEB joins the Mac ARM/Intel DMG and Windows x64 NSIS EXE buil
 Alpha.5 implements S01b/U01b real folder listing, 50-message pages and minute polling; U02a plain-text compose/reply/reply-all/forward and SMTP; U02b encrypted local drafts and durable submission status. Tests use synthetic messages/clients only. Full U02 remains incomplete: attachments, server drafts and real-provider/OS acceptance are open. R02 live mutations and offline cache remain backlog. See SEND_RECEIVE.md.
 
 At the owner's request, major milestones will have versioned GitHub preview downloads. Windows/Linux publication requires a successful four-platform installer run for the exact source SHA. Mac downloads remain excluded until signing/notarization and downloaded-install acceptance are available. The legacy alpha.1 publication workflow is replaced; it cannot accidentally republish the broken old Mac download.
+
+## 0.2.0 usable mailbox increment (2026-10-29)
+
+R01a implements saved account-scoped ordered rules, all/any conditions, exceptions, enabled state and stop processing. R02a implements live IMAP MOVE-to-folder/Junk/Trash and absolute flags, durable operation claims/deduplication and action history. R05a adds single-use preview/apply for the recent inbox page. S01c adds rule catch-up and prospective cursors. These are implemented with synthetic validation; provider/OS acceptance remains open, so full R01/R02/R05 are not marked Done. R03 permanent purge and R04 automatic replies remain blocked on their safety/execution work.
+
+Mailbox → Folder Settings persists explicit role mappings. Account vault format, profile location and app ID remain unchanged across this upgrade. See MAIL_WORKFLOWS.md and the 0.2.0 release notes for precise limits and acceptance evidence. Version 0.2.0 replaces sample-only controls; its GitHub prerelease status remains until real-platform/provider acceptance, independent of the version label.

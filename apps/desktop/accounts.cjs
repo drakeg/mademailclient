@@ -81,7 +81,7 @@ function editedAccount(input,previous) {
  } else if(previous?.smtp)value.smtp={...previous.smtp};
  return validateAccount(value);
 }
-function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,async()=>{}),testSmtp=verifySmtp,discover=discoverAccount,now=Date.now,resolveAccount=async a=>a}={}) {
+function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,async()=>{}),testSmtp=verifySmtp,discover=discoverAccount,now=Date.now,resolveAccount=async a=>a,onInbox=async()=>false}={}) {
  let busy=false,discovering=false;
  let lastAdd=0;
  async function save(input,id) {
@@ -110,7 +110,7 @@ function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,asyn
   update:async input=>{if(!input||typeof input.id!=='string'||!input.id)throw setupError('SETTINGS_INVALID','Select an account to edit.');return save(input,input.id);},
   remove:async id=>{if(typeof id!=='string')throw new Error('Invalid account');await vault.update(all=>all.filter(a=>a.id!==id));return null;},
   folders:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return listFolders(await resolveAccount(a));},
-  folder:async input=>{if(!input||typeof input.accountId!=='string')throw new Error('Select an account');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return fetchFolder(await resolveAccount(a),input);},
+  folder:async input=>{if(!input||typeof input.accountId!=='string')throw new Error('Select an account');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');const prepared=await resolveAccount(a),page=await fetchFolder(prepared,input);if((input.path||'INBOX').toUpperCase()==='INBOX'&&input.before===undefined){try{if(await onInbox(prepared,page))return fetchFolder(prepared,input);}catch(e){page.ruleError=e.publicMessage||'Automatic rules could not complete. Review Action History.';}}return page;},
   inbox:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return fetchInbox(await resolveAccount(a));},
   body:async input=>{if(!input||!Number.isSafeInteger(input.uid)||input.uid<1||typeof input.validity!=='string')throw new Error('Invalid message');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return withMailbox(await resolveAccount(a),input.path||'INBOX',async c=>{if(String(c.mailbox.uidValidity)!==input.validity)throw new Error('Refresh the inbox');const meta=await c.fetchOne(input.uid,{size:true},{uid:true});if(!meta||meta.size>2*1024*1024)return 'This message exceeds the 2 MB text preview limit.';const mail=await c.fetchOne(input.uid,{source:{start:0,maxLength:2*1024*1024}},{uid:true});const parsed=await simpleParser(mail.source,{skipHtmlToText:false,skipTextToHtml:true,skipImageLinks:true});return String(parsed.text||'No plain text content available.').slice(0,200000);});}
  };
