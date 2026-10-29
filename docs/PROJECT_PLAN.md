@@ -106,3 +106,9 @@ REA static inspection of installed Mail 16.0 is complete and documented in [rese
 ## Installer delivery follow-up (2026-10-27)
 
 Linux x64 AppImage/DEB joins the Mac ARM/Intel DMG and Windows x64 NSIS EXE build matrix. A local macOS source-build/install script packages, smoke-tests and copies to /Applications with backup of the previous bundle. See [INSTALLERS.md](INSTALLERS.md). X02 still requires real installation/upgrade/uninstall acceptance on each platform; X03 Mac distribution remains blocked on Developer ID/notarization. Linux CI runtime validation is tracked separately from DEB/AppImage installation acceptance.
+
+## Usable mail milestone (2026-10-29)
+
+Alpha.5 implements S01b/U01b real folder listing, 50-message pages and minute polling; U02a plain-text compose/reply/reply-all/forward and SMTP; U02b encrypted local drafts and durable submission status. Tests use synthetic messages/clients only. Full U02 remains incomplete: attachments, server drafts and real-provider/OS acceptance are open. R02 live mutations and offline cache remain backlog. See SEND_RECEIVE.md.
+
+At the owner's request, major milestones will have versioned GitHub preview downloads. Windows/Linux publication requires a successful four-platform installer run for the exact source SHA. Mac downloads remain excluded until signing/notarization and downloaded-install acceptance are available. The legacy alpha.1 publication workflow is replaced; it cannot accidentally republish the broken old Mac download.

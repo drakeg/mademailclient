@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain, safeStorage, shell } = require('electron');
+const {createOutgoing,registerOutgoing}=require('./outgoing.cjs');
 const { createOAuthService } = require('./oauth-service.cjs');
 const { registerOAuthIPC } = require('./oauth-ipc.cjs');
 const { verifySmtp } = require('./smtp.cjs');
@@ -58,7 +59,7 @@ if(primary)app.whenReady().then(()=>{
       window.show(); window.focus();
     },
     mailboxCommand: folder => { if (window && !window.isDestroyed()) window.webContents.send('mailbox:empty', folder); },
-    showAbout: () => dialog.showMessageBox({ type: 'info', title: 'About Made Mail', message: 'Made Mail', detail: `Version ${app.getVersion()}\nDesktop alpha. IMAP inbox reading; sending and mail changes are not available yet.` }),
+    showAbout: () => dialog.showMessageBox({ type: 'info', title: 'About Made Mail', message: 'Made Mail', detail: `Version ${app.getVersion()}\nDesktop alpha. IMAP inbox reading; plain-text SMTP sending. Live mail changes remain unavailable.` }),
   })));
   registerMessageMenuState(ipcMain,Menu,()=>window);
   registerMailboxMenu(ipcMain, Menu, () => window);
@@ -68,6 +69,8 @@ if(primary)app.whenReady().then(()=>{
   oauthService=createOAuthService({vault,config,nativeCallbackReady:app.isPackaged&&app.isDefaultProtocolClient('com.mademailclient.auth'),openExternal:url=>shell.openExternal(url),testInbox:a=>withInbox(a,async()=>{}),testSmtp:verifySmtp});
   registerOAuthIPC(ipcMain,()=>window,oauthService);
   registerAccounts(ipcMain,()=>window,vault,{resolveAccount:account=>oauthService.prepare(account)});
+  const journal=createVault(join(app.getPath('userData'),'outgoing.enc'),safeStorage);
+  registerOutgoing(ipcMain,()=>window,createOutgoing({vault,journal,resolveAccount:account=>oauthService.prepare(account)}));
   createWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });

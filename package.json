@@ -1,6 +1,6 @@
 {
   "name": "mademailclient",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs && node --check apps/desktop/main.cjs && node --check apps/desktop/assets.cjs && node --check apps/desktop/menu.cjs && node --check apps/desktop/smoke.cjs && node --check scripts/desktop-smoke.mjs && node --check apps/desktop/preload.cjs && node --check apps/desktop/mailbox-ipc.cjs && node --check packages/core/mailboxes.mjs && node --check apps/desktop/accounts.cjs && node --check apps/desktop/mail-network.cjs && node --check apps/desktop/smtp.cjs && node --check apps/desktop/account-discovery.cjs && node --check apps/web/account-setup.mjs && node --check apps/desktop/message-menu.cjs && node --check packages/core/message-actions.mjs && node --check apps/desktop/oauth-providers.cjs && node --check apps/desktop/oauth-flow.cjs && node --check apps/desktop/oauth-service.cjs && node --check apps/desktop/oauth-ipc.cjs && node --check scripts/configure-oauth.mjs",
+    "check": "node --check server.mjs && node --check packages/core/rules.mjs && node --check apps/web/app.mjs && node --check apps/desktop/main.cjs && node --check apps/desktop/assets.cjs && node --check apps/desktop/menu.cjs && node --check apps/desktop/smoke.cjs && node --check scripts/desktop-smoke.mjs && node --check apps/desktop/preload.cjs && node --check apps/desktop/mailbox-ipc.cjs && node --check packages/core/mailboxes.mjs && node --check apps/desktop/accounts.cjs && node --check apps/desktop/mail-network.cjs && node --check apps/desktop/smtp.cjs && node --check apps/desktop/account-discovery.cjs && node --check apps/web/account-setup.mjs && node --check apps/desktop/message-menu.cjs && node --check packages/core/message-actions.mjs && node --check apps/desktop/oauth-providers.cjs && node --check apps/desktop/oauth-flow.cjs && node --check apps/desktop/oauth-service.cjs && node --check apps/desktop/oauth-ipc.cjs && node --check scripts/configure-oauth.mjs && node --check apps/desktop/outgoing.cjs && node --check apps/web/composer.mjs",
     "desktop": "electron .",
     "desktop:pack": "electron-builder --dir",
     "desktop:mac": "electron-builder --mac",

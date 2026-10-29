@@ -1,4 +1,5 @@
 document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'desktop' : 'browser';
+import {createComposer,canSendAccount} from '/apps/web/composer.mjs';
 import { messageCommands, applyDemoMessageAction } from '/packages/core/message-actions.mjs';
 import { planRules, validateRule } from '/packages/core/rules.mjs';
 import { createAccountSetup } from '/apps/web/account-setup.mjs';
@@ -43,10 +44,10 @@ function visibleMessages(){const term=el('search').value.toLowerCase();return me
 function notice(value){el('notice').textContent=value;el('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{el('notice').hidden=true;},4500);}
 function renderReader(visible){
  const m=visible.find(m=>m.id===selectedId);el('reader').replaceChildren();
- const commands=messageCommands(m,{canModify:demo});
+ const commands=messageCommands(m,{canModify:demo,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))});
  document.querySelectorAll('[data-action]').forEach(b=>{const state=commands[b.dataset.action];b.disabled=!state.enabled;b.hidden=!state.visible;b.title=state.reason||state.label;b.setAttribute('aria-label',state.label);const label=b.querySelector('span');if(label)label.textContent=state.label;else b.textContent=state.label;});
- window.desktopMail?.setMessageMenuState({selected:!!m,canModify:demo,junk:['junk','spam'].includes(m?.folder),unread:!!m?.unread,flagged:!!m?.flagged,trash:m?.folder==='trash',archive:m?.folder==='archive'});
- el('reader-capabilities').textContent=demo?'Sample message changes reset on reload. Sending is not available yet.':m?'Connected account is read-only. Sending and mail changes are not available yet.':'Select a message to see available actions.';
+ window.desktopMail?.setMessageMenuState({selected:!!m,canModify:demo,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId)),junk:['junk','spam'].includes(m?.folder),unread:!!m?.unread,flagged:!!m?.flagged,trash:m?.folder==='trash',archive:m?.folder==='archive'});
+ el('reader-capabilities').textContent=demo?'Sample message changes reset on reload. Sending is not available yet.':m?'Mail changes are read-only; plain-text replies use your account’s SMTP settings.':'Select a message to see available actions.';
  el('reader-position').textContent=m?`${visible.indexOf(m)+1} of ${visible.length}`:'';
  if(!m){const empty=text('div','',el('reader'),'empty-state');icon('mail',empty);text('h2','No message selected',empty);text('p','Choose a message to read it here.',empty);return;}
  const label=text('div','',el('reader'),'reader-label');text('i','',label,`account-dot ${m.accountId}`);text('span',`${accountName(m.accountId)} / ${m.folder==='inbox'?'Inbox':m.folder}`,label);
@@ -72,9 +73,12 @@ el('search').oninput=render;
 for(const [id,value] of [['filter-all',false],['filter-unread',true]])el(id).onclick=()=>{unreadOnly=value;el('filter-all').setAttribute('aria-pressed',String(!value));el('filter-unread').setAttribute('aria-pressed',String(value));render();};
 el('density').onclick=()=>{const compact=document.body.classList.toggle('compact');el('density').setAttribute('aria-label',compact?'Use comfortable message spacing':'Use compact message spacing');};
 el('refresh').onclick=()=>demo?notice('Sample mail; changes reset on reload.'):refreshAccounts();
-function performMessageAction(action){
+async function performMessageAction(action){
  closeWindowMenus();const m=messages.find(m=>m.id===selectedId);
- if(!demo||!messageCommands(m,{canModify:demo})[action]?.enabled)return;
+ if(action==='compose'){composer.open();return;}
+ if(action==='outgoing'){await composer.showRecords();return;}
+ if(['reply','replyAll','forward'].includes(action)&&!demo&&m){await loadSelectedBody();if(!m.loaded){notice('Load message text before replying or forwarding.');return;}composer.open(action,m);return;}
+ if(!demo||!messageCommands(m,{canModify:demo,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))})[action]?.enabled)return;
  messages=messages.map(item=>item.id===m.id?applyDemoMessageAction(item,action):item);
  render();notice(action==='notJunk'?'Sample message moved to Inbox.':action==='junk'?'Sample message moved to Junk.':action==='trash'?'Sample message moved to Deleted Items.':'Sample message updated.');
 }
@@ -140,6 +144,9 @@ window.desktopMail?.onMenuCommand(command=>{
  else performMessageAction(command);
 });
 
+const composer=createComposer({el,text,getAccounts:()=>accounts,notice});
+el('menu-compose').onclick=()=>{closeWindowMenus();composer.open();};
+el('menu-outgoing').onclick=()=>{closeWindowMenus();composer.showRecords();};
 const demoTree=document.querySelector('.account-tree').innerHTML;
 function rebuildAccounts(){
  const tree=document.querySelector('.account-tree');tree.replaceChildren();

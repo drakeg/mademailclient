@@ -19,6 +19,9 @@ function createMenuTemplate(platform, { showAbout, mailboxCommand = () => {}, re
       { type: 'separator' }, { role: 'quit' },
     ] }] : []),
     { label: mac ? 'File' : '&File', submenu: [
+      {id:'file:compose',label:'New Message',accelerator:'CmdOrCtrl+N',click:()=>messageCommand('compose')},
+      {id:'file:outgoing',label:'Local Drafts and Sending Status…',click:()=>messageCommand('outgoing')},
+      {type:'separator'},
       { id:mac?'file:add-account':'accounts:add', label: 'Add Account…', click: () => accountsCommand('add') },
       ...(!mac ? [{ id:'accounts:manage', label: 'Account Settings…', click: () => accountsCommand('manage') }] : []),
       { type: 'separator' },

@@ -9,7 +9,7 @@ function registerMessageMenuState(ipcMain,Menu,getWindow) {
   const menu=Menu.getApplicationMenu();
   for(const action of actions){
    const item=menu?.getMenuItemById('message:'+action);if(!item)continue;
-   item.enabled=state.selected&&state.canModify&&!['reply','replyAll','forward'].includes(action)&&!(action==='trash'&&state.trash)&&!(action==='archive'&&state.archive);
+   item.enabled=state.selected&&(['reply','replyAll','forward'].includes(action)?state.canSend===true:state.canModify)&&!(action==='trash'&&state.trash)&&!(action==='archive'&&state.archive);
    if(action==='junk'||action==='notJunk'){item.visible=action==='junk'?!state.junk:state.junk;item.enabled=item.enabled&&item.visible;}
    if(action==='unread')item.label=state.unread?'Mark as Read':'Mark as Unread';
    if(action==='flag')item.label=state.flagged?'Remove Flag':'Flag';

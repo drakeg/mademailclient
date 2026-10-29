@@ -3,12 +3,13 @@ contextBridge.exposeInMainWorld('desktopMail', {
   isDesktop: true,
   onMenuCommand: callback => {
     if(typeof callback!=='function')return;
-    const allowed=new Set(['rules','preview','columns','density','reply','replyAll','forward','archive','trash','junk','notJunk','unread','flag']);
+    const allowed=new Set(['compose','outgoing','rules','preview','columns','density','reply','replyAll','forward','archive','trash','junk','notJunk','unread','flag']);
     const listener=(_event,command)=>{if(allowed.has(command))callback(command);};
     ipcRenderer.on('menu:command',listener);
     return ()=>ipcRenderer.removeListener('menu:command',listener);
   },
   setMessageMenuState: state => ipcRenderer.send('message:menu-state',state),
+  outgoing: Object.fromEntries(['list','save','discard','send'].map(name=>[name,input=>ipcRenderer.invoke('outgoing:'+name,input)])),
   accounts: Object.fromEntries(['list','add','update','discover','remove','inbox','body','folders','folder','providers','signIn','cancelSignIn'].map(name => [name, input => ipcRenderer.invoke('accounts:'+name,input)])),
   onAccountsCommand: callback => {
     if (typeof callback !== 'function') return;

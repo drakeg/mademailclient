@@ -1,3 +1,5 @@
+> Current alpha.5 update: real folders, paged reads, polling and plain-text sending are now implemented. The older read-only descriptions below are historical; see [SEND_RECEIVE.md](SEND_RECEIVE.md) for the current contract and remaining limits.
+
 # Desktop account connections
 
 Made Mail starts empty. Use Made Mail → Add Account or File → Add Account on macOS, and File → Add Account on Windows. Accounts can be added, edited, and removed through Accounts. Use Edit settings on an existing account to add SMTP without removing it. Removal forgets credentials and loaded messages in Made Mail; it never deletes mail on the server. Sample mail is available only through Explore fictional sample mail in Accounts.

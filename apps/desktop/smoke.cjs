@@ -57,7 +57,17 @@ function attachSmokeTest(app,window,Menu) {
    await run(`await wait(()=>!document.querySelector('.message'));document.querySelector('[data-view="work"]').click();assert([...document.querySelectorAll('.subject')].some(n=>n.textContent.includes('Brand direction')),'Not Junk returns to same account Inbox');`);
    item('mailbox:rules').click();
    await run(`await wait(()=>document.querySelector('#rules').open);const form=document.querySelector('#rule-form');form.elements.term.value='invoice';form.elements.value.value='Finance';form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));assert(document.querySelector('#preview').textContent.includes('1 matching inbox message'),'Native Rules command');document.querySelector('#rules').close();document.querySelector('[data-view="personal"]').click();assert(document.querySelectorAll('.message').length===3,'Individual inbox');const search=document.querySelector('#search');search.value='garden';search.dispatchEvent(new Event('input'));assert(document.querySelectorAll('.message').length===1,'Search');`);
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:28}));
+   await run(`
+    const {createComposer}=await import('/apps/web/composer.mjs');
+    let saved,submissions=0;
+    const compose=createComposer({el:id=>document.getElementById(id),text:(tag,value,parent)=>{const n=document.createElement(tag);n.textContent=value;parent.append(n);return n;},getAccounts:()=>[{id:'fixture',email:'sender@example.com',smtp:{host:'smtp.example.com'}}],notice:message=>{throw new Error(message);},outgoing:{save:async value=>{saved=value;return {ok:true,data:{id:'fixture'}};},send:async()=>{submissions++;return {ok:true,data:{status:'accepted',copy:'saved'}};}}});
+    compose.open();assert(document.querySelector('#composer').open,'Composer opens');
+    const cf=document.querySelector('#compose-form');cf.elements.to.value='friend@example.com';cf.elements.subject.value='Synthetic smoke';cf.elements.text.value='Fictional text only';
+    document.querySelector('#compose-save').click();await wait(()=>document.querySelector('#compose-status').textContent.includes('Draft saved'));assert(saved.accountId==='fixture'&&saved.text==='Fictional text only','Draft preserves selected account and text');
+    cf.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));await wait(()=>document.querySelector('#compose-status').textContent.includes('SMTP server accepted'));
+    assert(submissions===1&&document.querySelector('#compose-send').disabled,'Accepted submission is locked');document.querySelector('#compose-close').click();
+   `);
+   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:32}));
    clearTimeout(timeout);app.exit(0);
   }catch(error){fail(error.message);}
  });

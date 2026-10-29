@@ -3,7 +3,7 @@
 An open-source email client bringing existing accounts into one workspace, inspired by familiar Outlook and Apple Mail workflows.
 
 ## Status
-Foundation prototype, not a production email client. The browser demo can display optional fictional messages, supports unified/account inboxes and search, and previews rules. The desktop alpha now offers GUI-managed IMAP/SMTP app-password settings, automatic server discovery, OS-encrypted credentials and read-only recent inbox retrieval. SMTP settings are tested and saved; composing/sending remains unfinished. It starts with no accounts; fictional sample mail is optional. Browser OAuth code for Gmail/Yahoo is implemented but unavailable in unregistered builds; the publisher registrations and real-provider acceptance are still pending. Sending, full synchronization and live mail actions remain unimplemented. See [provider sign-in prerequisites](docs/PROVIDER_SIGN_IN.md). See [account setup and limits](docs/ACCOUNTS.md). Desktop packaging targets Mac DMG, Windows setup EXE and Linux DEB/AppImage; see [desktop setup](docs/DESKTOP.md). Installer signing and platform acceptance testing remain pending.
+Experimental desktop preview. GUI account setup now connects supported IMAP/SMTP accounts; real server folders, paged reads, one-minute inbox polling, plain-text compose/reply/forward, and encrypted local drafts/submission records are implemented. Live-provider acceptance is pending. Attachments, server drafts, offline caching and live message mutations remain unfinished. Browser OAuth needs publisher registrations. See [send/receive contract and limits](docs/SEND_RECEIVE.md), [account setup](docs/ACCOUNTS.md), and [provider sign-in prerequisites](docs/PROVIDER_SIGN_IN.md). Not ready for full-time use without acceptance testing. Desktop builds cover Mac, Windows and Linux; signed Mac downloads remain blocked on Developer ID/notarization.
 
 ## Installable desktop apps (primary delivery)
 
@@ -38,7 +38,7 @@ Start with [project plan](docs/PROJECT_PLAN.md), [architecture](docs/ARCHITECTUR
 MIT; see LICENSE. This is an original implementation and is not affiliated with Microsoft or Apple. Do not copy proprietary code, assets, or branding.
 
 ## Alpha testing and releases
-See [desktop testing](docs/TESTING.md) and [alpha acceptance status](docs/releases/alpha-acceptance.md). Platform installers are built by GitHub Actions. Matching alpha version tags create a draft prerelease only after all four packaged-app smoke tests pass. Normal distribution remains gated on native installation acceptance and signing/notarization. Release source archives are not installers.
+See [desktop testing](docs/TESTING.md) and [alpha acceptance status](docs/releases/alpha-acceptance.md). Platform installers are built by GitHub Actions. Maintainers publish explicitly requested Windows/Linux preview releases from the release/milestone-* branch after a successful installer run for the exact commit. Mac binary distribution remains separately gated. Normal distribution remains gated on native installation acceptance and signing/notarization. Release source archives are not installers.
 
 ## Mail workspace
 
