@@ -1,6 +1,6 @@
 # Installing Made Mail previews
 
-Made Mail is an Electron desktop application with bundled assets. It does not need a web server. These are development previews: accounts are read-only, sending is unfinished, and OAuth requires publisher registration. Back up important mail and use disposable accounts for provider acceptance.
+Made Mail is an Electron desktop application with bundled assets. It does not need a web server. Version 0.2.0 supports connected reading, plain-text sending, mailbox actions and saved rules; see MAIL_WORKFLOWS.md for current capabilities. Real-provider acceptance and OAuth publisher registration remain pending. Back up important mail and use disposable accounts for provider acceptance.
 
 ## macOS: local build and install today
 
