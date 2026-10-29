@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('desktopMail', {
     return ()=>ipcRenderer.removeListener('menu:command',listener);
   },
   setMessageMenuState: state => ipcRenderer.send('message:menu-state',state),
-  accounts: Object.fromEntries(['list','add','update','discover','remove','inbox','body','providers','signIn','cancelSignIn'].map(name => [name, input => ipcRenderer.invoke('accounts:'+name,input)])),
+  accounts: Object.fromEntries(['list','add','update','discover','remove','inbox','body','folders','folder','providers','signIn','cancelSignIn'].map(name => [name, input => ipcRenderer.invoke('accounts:'+name,input)])),
   onAccountsCommand: callback => {
     if (typeof callback !== 'function') return;
     const listener = (_event, mode) => { if (['add','manage'].includes(mode)) callback(mode); };

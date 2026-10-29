@@ -28,23 +28,37 @@ function createVault(path,crypto) {
  async function read(){try {const decrypted=await crypto.decryptStringAsync(await fs.readFile(path));const data=JSON.parse(decrypted.result);if(data.version!==1||!Array.isArray(data.accounts))throw new Error('Invalid vault');return data.accounts;}catch(error){if(error.code==='ENOENT')return [];throw new Error('Account storage could not be unlocked. Existing data was preserved.');}}
  return {available:()=>crypto.isAsyncEncryptionAvailable(),async list(){await queue;return read();},update(change){const task=queue.then(async()=>{if(!await crypto.isAsyncEncryptionAvailable())throw new Error('OS credential encryption is unavailable');const accounts=await read();const next=change(accounts);const encrypted=await crypto.encryptStringAsync(JSON.stringify({version:1,accounts:next}));const temp=path+'.'+randomUUID();try{await fs.writeFile(temp,encrypted,{mode:0o600,flag:'wx'});await fs.rename(temp,path);}finally{await fs.rm(temp,{force:true});}return next;});queue=task.catch(()=>{});return task;}};
 }
-async function withInbox(account,run,{resolve,Client=ImapFlow}={}) {
+async function withConnection(account,run,{resolve,Client=ImapFlow}={}) {
  if(account.oauth)assertProviderHosts(account);
  const address=await publicHost(account.host,resolve);
  const client=new Client({host:address,port:account.port??993,secure:(account.security??'tls')==='tls',doSTARTTLS:account.security==='starttls',tls:{servername:account.host,rejectUnauthorized:true,minVersion:'TLSv1.2'},auth:account.oauth?{user:account.username,accessToken:account.oauth.accessToken}:{user:account.username,pass:account.password},logger:false,disableAutoIdle:true,disableCompression:true,connectionTimeout:10000,greetingTimeout:10000,socketTimeout:20000});
  client.on('error',()=>{});
- try {await client.connect();const lock=await client.getMailboxLock('INBOX',{readOnly:true});try{return await run(client);}finally{lock.release();}}finally{await client.logout().catch(()=>client.close());}
+ try {await client.connect();return await run(client);}finally{await client.logout().catch(()=>client.close());}
 }
-async function fetchInbox(account) {
- return withInbox(account,async client=>{
-  const total=client.mailbox.exists;if(!total)return [];
-  const validity=String(client.mailbox.uidValidity);const results=[];
-  for await(const m of client.fetch(`${Math.max(1,total-29)}:*`,{uid:true,envelope:true,flags:true,size:true})){
+async function withMailbox(account,path,run,options={}) {
+ return withConnection(account,async client=>{const lock=await client.getMailboxLock(field(path,'folder',1024),{readOnly:true});try{return await run(client);}finally{lock.release();}},options);
+}
+async function withInbox(account,run,options={}) {return withMailbox(account,'INBOX',run,options);}
+const folderKey=path=>path.toUpperCase()==='INBOX'?'inbox':'folder-'+encodeURIComponent(path);
+async function listFolders(account,options={}) {
+ return withConnection(account,async c=>(await c.list()).filter(f=>!f.flags?.has('\\Noselect')).slice(0,1000).map(f=>({path:f.path,name:f.name,key:folderKey(f.path),specialUse:f.specialUse||null})),options);
+}
+async function fetchFolder(account,input={},options={}) {
+ const path=field(input.path||'INBOX','folder',1024);
+ if(input.before!==undefined&&(!Number.isSafeInteger(input.before)||input.before<1))throw new Error('Invalid page');
+ return withMailbox(account,path,async client=>{
+  const total=client.mailbox.exists,validity=String(client.mailbox.uidValidity);
+  if(input.validity!==undefined&&input.validity!==validity)throw new Error('Mailbox changed. Refresh before loading older mail.');
+  const end=Math.min(total,input.before===undefined?total:input.before-1),start=Math.max(1,end-49),results=[];
+  if(end>0)for await(const m of client.fetch(`${start}:${end}`,{uid:true,envelope:true,flags:true,size:true})){
    const e=m.envelope||{},from=e.from?.[0]||{};
-   results.push({id:`${account.id}:${validity}:${m.uid}`,accountId:account.id,uid:m.uid,validity,from:String(from.name||from.address||'Unknown sender').slice(0,500),email:String(from.address||''),to:account.email,subject:String(e.subject||'(No subject)').slice(0,1000),body:'Select to load message text.',size:m.size,unread:!m.flags.has('\\Seen'),flagged:m.flags.has('\\Flagged'),folder:'inbox',receivedAt:e.date?new Date(e.date).toISOString():null,time:e.date?new Date(e.date).toLocaleString():'',date:'Recent messages'});
-  }return results.reverse();
- });
+   const addresses=items=>(items||[]).map(x=>String(x.address||'')).filter(Boolean).slice(0,100);
+   results.push({id:`${account.id}:${encodeURIComponent(path)}:${validity}:${m.uid}`,accountId:account.id,path,uid:m.uid,validity,from:String(from.name||from.address||'Unknown sender').slice(0,500),email:String(from.address||''),to:addresses(e.to).join(', '),toAddresses:addresses(e.to),ccAddresses:addresses(e.cc),replyTo:addresses(e.replyTo),messageId:e.messageId||'',subject:String(e.subject||'(No subject)').slice(0,1000),body:'Select to load message text.',size:m.size,unread:!m.flags.has('\\Seen'),flagged:m.flags.has('\\Flagged'),folder:folderKey(path),receivedAt:e.date?new Date(e.date).toISOString():null,time:e.date?new Date(e.date).toLocaleString():'',date:'Recent messages'});
+  }
+  return {messages:results.reverse(),before:start>1?start:null,validity,total};
+ },options);
 }
+async function fetchInbox(account){return (await fetchFolder(account)).messages;}
 function setupError(code,message) {return Object.assign(new Error(message),{publicCode:code,publicMessage:message});}
 function sameLogin(next,previous,protocol) {
  if(!previous)return false;
@@ -95,8 +109,10 @@ function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,asyn
   add:async input=>save(input),
   update:async input=>{if(!input||typeof input.id!=='string'||!input.id)throw setupError('SETTINGS_INVALID','Select an account to edit.');return save(input,input.id);},
   remove:async id=>{if(typeof id!=='string')throw new Error('Invalid account');await vault.update(all=>all.filter(a=>a.id!==id));return null;},
+  folders:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return listFolders(await resolveAccount(a));},
+  folder:async input=>{if(!input||typeof input.accountId!=='string')throw new Error('Select an account');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return fetchFolder(await resolveAccount(a),input);},
   inbox:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return fetchInbox(await resolveAccount(a));},
-  body:async input=>{if(!input||!Number.isSafeInteger(input.uid)||input.uid<1||typeof input.validity!=='string')throw new Error('Invalid message');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return withInbox(await resolveAccount(a),async c=>{if(String(c.mailbox.uidValidity)!==input.validity)throw new Error('Refresh the inbox');const meta=await c.fetchOne(input.uid,{size:true},{uid:true});if(!meta||meta.size>2*1024*1024)return 'This message exceeds the 2 MB text preview limit.';const mail=await c.fetchOne(input.uid,{source:{start:0,maxLength:2*1024*1024}},{uid:true});const parsed=await simpleParser(mail.source,{skipHtmlToText:false,skipTextToHtml:true,skipImageLinks:true});return String(parsed.text||'No plain text content available.').slice(0,200000);});}
+  body:async input=>{if(!input||!Number.isSafeInteger(input.uid)||input.uid<1||typeof input.validity!=='string')throw new Error('Invalid message');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return withMailbox(await resolveAccount(a),input.path||'INBOX',async c=>{if(String(c.mailbox.uidValidity)!==input.validity)throw new Error('Refresh the inbox');const meta=await c.fetchOne(input.uid,{size:true},{uid:true});if(!meta||meta.size>2*1024*1024)return 'This message exceeds the 2 MB text preview limit.';const mail=await c.fetchOne(input.uid,{source:{start:0,maxLength:2*1024*1024}},{uid:true});const parsed=await simpleParser(mail.source,{skipHtmlToText:false,skipTextToHtml:true,skipImageLinks:true});return String(parsed.text||'No plain text content available.').slice(0,200000);});}
  };
  for(const [name,handler]of Object.entries(handlers))ipcMain.handle(`accounts:${name}`,async(event,input)=>{
   const contents=getWindow()?.webContents;
@@ -106,4 +122,4 @@ function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,asyn
   try{return {ok:true,data:await handler(input)};}catch(error){return {ok:false,code:error.publicCode||'ACCOUNT_OPERATION_FAILED',error:error.publicMessage||'Account operation failed. Check the network and OS credential storage. Existing accounts were preserved.'};}finally{if(discovery)discovering=false;else busy=false;}
  });
 }
-module.exports={validateAccount,publicAddress,createVault,registerAccounts,withInbox,accountSummary};
+module.exports={validateAccount,publicAddress,createVault,registerAccounts,withInbox,withConnection,withMailbox,listFolders,fetchFolder,accountSummary};

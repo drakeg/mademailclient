@@ -21,6 +21,7 @@ messages.push(
 const demoMessages=structuredClone(messages);
 messages=[];
 let demo=false, accounts=[], loading=false;
+const foldersByAccount=new Map(), folderPages=new Map();
 let view='inbox', unreadOnly=false, selectedId='1', noticeTimer;
 const el=id=>document.getElementById(id);
 const text=(tag,value,parent,className)=>{const n=document.createElement(tag);n.textContent=value;if(className)n.className=className;parent.append(n);return n;};
@@ -57,10 +58,11 @@ function renderReader(visible){
  document.querySelectorAll('[data-action="unread"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.unread)));
 }
 function render(){
+ el('load-older').hidden=demo||!view.includes(':');el('load-older').disabled=loading;
  const visible=visibleMessages();if(!visible.some(m=>m.id===selectedId))selectedId=visible[0]?.id;
  el('mailbox-title').textContent=names[view]||accountName(view.split(':')[0]);el('mailbox-summary').textContent=`${visible.length} message${visible.length===1?'':'s'} · ${visible.filter(m=>m.unread).length} unread`;
  el('messages').replaceChildren();let group;
- for(const m of visible){if(group!==m.date){group=m.date;text('div',group,el('messages'),'date-heading');}const b=text('button','',el('messages'),`message${m.unread?' unread':''}${selectedId===m.id?' selected':''}`);b.setAttribute('aria-pressed',String(selectedId===m.id));b.setAttribute('aria-label',`${m.from}: ${m.subject}, ${m.time}, ${accountName(m.accountId)}${m.unread?', unread':''}`);if(m.unread)text('span','',b,'unread-dot');text('span',m.from.split(' ').slice(0,2).map(w=>w[0].toUpperCase()).join(''),b,'message-avatar');const row=text('div','',b,'message-top');text('span',m.from,row,'sender');text('time',m.time,row);text('span',m.subject,b,'subject');text('span',m.body.replaceAll('\n',' '),b,'snippet');const meta=text('div','',b,'message-meta');text('i','',meta,`account-dot ${m.accountId}`);text('span',accountName(m.accountId),meta);if(m.hasAttachment)icon('paperclip',meta);if(m.flagged)icon('flag',meta);b.onclick=async()=>{selectedId=m.id;render();if(!demo&&m.uid&&!m.loaded){const r=await api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity});if(r!==undefined){m.body=r;m.loaded=true;render();}}};}
+ for(const m of visible){if(group!==m.date){group=m.date;text('div',group,el('messages'),'date-heading');}const b=text('button','',el('messages'),`message${m.unread?' unread':''}${selectedId===m.id?' selected':''}`);b.setAttribute('aria-pressed',String(selectedId===m.id));b.setAttribute('aria-label',`${m.from}: ${m.subject}, ${m.time}, ${accountName(m.accountId)}${m.unread?', unread':''}`);if(m.unread)text('span','',b,'unread-dot');text('span',m.from.split(' ').slice(0,2).map(w=>w[0].toUpperCase()).join(''),b,'message-avatar');const row=text('div','',b,'message-top');text('span',m.from,row,'sender');text('time',m.time,row);text('span',m.subject,b,'subject');text('span',m.body.replaceAll('\n',' '),b,'snippet');const meta=text('div','',b,'message-meta');text('i','',meta,`account-dot ${m.accountId}`);text('span',accountName(m.accountId),meta);if(m.hasAttachment)icon('paperclip',meta);if(m.flagged)icon('flag',meta);b.onclick=async()=>{selectedId=m.id;render();if(!demo&&m.uid&&!m.loaded){const r=await api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});if(r!==undefined){m.body=r;m.loaded=true;render();}}};}
  if(!visible.length){const empty=text('div','',el('messages'),'empty-state');icon('inbox',empty);text('p',loading?'Loading inboxes…':accounts.length||demo?'No messages here.':'Choose File → Add Account… to get started.',empty);}
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-current',b.dataset.view===view?'page':'false');});
  document.querySelectorAll('[data-count]').forEach(n=>{const count=messages.filter(m=>inView(m,n.dataset.count)&&(['flagged','junk','trash'].includes(n.dataset.count)||m.unread)).length;n.textContent=count||'';});el('empty-folder').hidden=!demo||!['junk','trash'].includes(mailboxScope().folder);el('empty-folder').textContent=mailboxScope().folder==='junk'?'Empty Junk…':'Empty Deleted Items…';renderReader(visible);
@@ -141,18 +143,43 @@ window.desktopMail?.onMenuCommand(command=>{
 const demoTree=document.querySelector('.account-tree').innerHTML;
 function rebuildAccounts(){
  const tree=document.querySelector('.account-tree');tree.replaceChildren();
- if(demo){tree.innerHTML=demoTree;}else for(const a of accounts){const details=text('details','',tree,'mail-account');details.open=true;text('summary',a.email,details);const b=text('button','Inbox',details,'nav-item');b.dataset.view=a.id+':inbox';names[b.dataset.view]=a.email+' · Inbox';}
- tree.querySelectorAll('[data-view]').forEach(b=>{b.onclick=()=>{view=b.dataset.view;selectedId=null;render();};const {folder,accountId}=mailboxScope(b.dataset.view);if(['junk','trash'].includes(folder))b.oncontextmenu=async event=>{event.preventDefault();if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder,accountId);}catch{notice('Use the Empty button in this mailbox.');}}else requestEmpty(folder,accountId);};});
+ if(demo){tree.innerHTML=demoTree;}else for(const a of accounts){const details=text('details','',tree,'mail-account');details.open=true;text('summary',a.email,details);for(const f of foldersByAccount.get(a.id)||[{path:'INBOX',name:'Inbox',key:'inbox'}]){const b=text('button',f.name,details,'nav-item');b.dataset.view=a.id+':'+f.key;names[b.dataset.view]=a.email+' · '+f.name;}}
+ tree.querySelectorAll('[data-view]').forEach(b=>{b.onclick=async()=>{view=b.dataset.view;selectedId=null;render();if(!demo)await loadCurrentFolder();};const {folder,accountId}=mailboxScope(b.dataset.view);if(['junk','trash'].includes(folder))b.oncontextmenu=async event=>{event.preventDefault();if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder,accountId);}catch{notice('Use the Empty button in this mailbox.');}}else requestEmpty(folder,accountId);};});
  const select=document.querySelector('#rule-form [name="account"]');select.replaceChildren();const all=text('option','All accounts',select);all.value='all';for(const a of demo?[{id:'work',email:'alex@northstar.example'},{id:'personal',email:'alex@icloud.example'}]:accounts){const o=text('option',a.email,select);o.value=a.id;}
  document.querySelector('.demo-status').textContent=demo?'Sample mail':accounts.length+' account(s)';
- el('connection-state').textContent=demo?'Demo · fictional mail':'Read-only desktop alpha';
- mode.querySelector('span').textContent=demo?'Fictional mail · changes reset on reload':'Live IMAP inboxes · latest 30 per account';
+ el('connection-state').textContent=demo?'Demo · fictional mail':'Connected desktop preview';
+ mode.querySelector('span').textContent=demo?'Fictional mail · changes reset on reload':'Live folders · refresh every minute while open';
 }
 async function api(name,input){try{const result=await window.desktopMail.accounts[name](input);if(!result.ok)throw new Error(result.error);return result.data;}catch(error){notice(error.message||'Account operation failed.');return undefined;}}
-async function refreshAccounts(){
- if(loading)return;loading=true;el('refresh').setAttribute('aria-busy','true');demo=false;messages=[];view='inbox';render();
- try{const list=await api('list');if(!list)return;accounts=list;rebuildAccounts();for(const a of accounts){const inbox=await api('inbox',a.id);if(inbox)messages.push(...inbox);}messages.sort((a,b)=>new Date(b.receivedAt)-new Date(a.receivedAt));}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
+async function loadSelectedBody(){
+ const m=messages.find(m=>m.id===selectedId);
+ if(!demo&&m?.uid&&!m.loaded){const body=await api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});if(body!==undefined){m.body=body;m.loaded=true;render();}}
 }
+async function fetchPage(accountId,path='INBOX',older=false){
+ const key=accountId+':'+path,previous=folderPages.get(key);
+ if(older&&!previous?.before)return;
+ const result=await api('folder',{accountId,path,...(older?{before:previous.before,validity:previous.validity}:{})});
+ if(!result)return;
+ if(!older)messages=messages.filter(m=>m.accountId!==accountId||m.path!==path);
+ const ids=new Set(messages.map(m=>m.id));messages.push(...result.messages.filter(m=>!ids.has(m.id)));
+ folderPages.set(key,result);
+}
+async function loadCurrentFolder(older=false){
+ if(loading||demo||!view.includes(':'))return;
+ const [accountId,key]=view.split(':'),folder=foldersByAccount.get(accountId)?.find(f=>f.key===key);
+ if(!folder)return;
+ loading=true;el('refresh').setAttribute('aria-busy','true');
+ try{await fetchPage(accountId,folder.path,older);}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
+ await loadSelectedBody();
+}
+async function refreshAccounts(){
+ if(loading)return;loading=true;el('refresh').setAttribute('aria-busy','true');
+ if(demo){messages=[];view='inbox';}demo=false;render();
+ try{const list=await api('list');if(!list)return;accounts=list;messages=messages.filter(m=>accounts.some(a=>a.id===m.accountId));for(const a of accounts){const folders=await api('folders',a.id);if(folders)foldersByAccount.set(a.id,folders);await fetchPage(a.id);}rebuildAccounts();messages.sort((a,b)=>new Date(b.receivedAt)-new Date(a.receivedAt));}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
+ if(view.includes(':'))await loadCurrentFolder();else await loadSelectedBody();
+}
+el('load-older').onclick=()=>loadCurrentFolder(true);
+if(window.desktopMail)setInterval(()=>{if(!demo&&!loading&&!document.querySelector('dialog[open]'))refreshAccounts();},60000);
 el('demo-mode').onclick=()=>{el('accounts').close();if(loading)return;demo=true;messages=structuredClone(demoMessages);view='inbox';rebuildAccounts();render();};
 rebuildAccounts();render();
 if(window.desktopMail)refreshAccounts();
