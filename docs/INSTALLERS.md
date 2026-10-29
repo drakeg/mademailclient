@@ -32,14 +32,14 @@ From the **Desktop installers** Actions run for the desired commit, download `in
 The workflow produces `installer-linux-x64`. On Debian/Ubuntu, unzip the artifact and install the local package:
 
 ```sh
-sudo apt install ./Made-Mail-<version>-linux-x64.deb
+sudo apt install ./Made-Mail-<version>-linux-amd64.deb
 ```
 
 Launch Made Mail from the application menu. Remove with `sudo apt remove mademailclient`. Your account data is retained. Other distributions can try the AppImage:
 
 ```sh
-chmod +x Made-Mail-<version>-linux-x64.AppImage
-./Made-Mail-<version>-linux-x64.AppImage
+chmod +x Made-Mail-<version>-linux-x86_64.AppImage
+./Made-Mail-<version>-linux-x86_64.AppImage
 ```
 
 AppImages may require distribution-specific FUSE support. Keep Electron's sandbox enabled; do not add --no-sandbox. AppImage desktop integration and Linux ARM are not provided. Secure account storage depends on a supported OS secret service; systems without it may reject credential persistence. CI launches the unpacked app under Xvfb; that does not establish package-manager installation or AppImage acceptance on every distribution.

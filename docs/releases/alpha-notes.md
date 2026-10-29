@@ -12,7 +12,7 @@ This is an experimental milestone, not a full-time-client recommendation. Test w
 
 ## Downloads and installation
 - Windows x64: unzip the setup download if necessary and run the `.exe`. It is unsigned; OS reputation/installation acceptance is pending. Do not disable OS security protections.
-- Linux x64: install the `.deb` with `sudo apt install ./Made-Mail-0.1.0-alpha.5-linux-x64.deb` on supported Debian/Ubuntu, or make the AppImage executable and run it. Keep the Electron sandbox enabled. A supported secret service is required for encrypted credentials.
+- Linux x64: install the `.deb` with `sudo apt install ./Made-Mail-0.1.0-alpha.5-linux-amd64.deb` on supported Debian/Ubuntu, or make the AppImage executable and run it. Keep the Electron sandbox enabled. A supported secret service is required for encrypted credentials.
 - macOS: **no ready-to-install Mac binary is included in this release**. Developer ID signing/notarization is still unavailable; the old unsigned DMG is not fixed. Build this release's reviewed source on your Mac with Node 22+, pnpm 11.25.0, and `pnpm desktop:install:mac`. This copies the app to /Applications; see docs/INSTALLERS.md. GitHub's source archives contain source, not a built app.
 - SHA256SUMS.txt covers the three declared Windows/Linux installer files. Only installers from the successful build for this exact source commit are published.
 

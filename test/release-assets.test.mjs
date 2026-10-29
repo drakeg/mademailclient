@@ -11,7 +11,7 @@ test('release collection requires every installer and hashes exact bytes', async
   try {
     await writeFile(join(cwd, 'package.json'), JSON.stringify({ version:'0.1.0-alpha.4' }));
     await mkdir(join(cwd,'release-assets'));
-    const names = ['mac-arm64.dmg','mac-x64.dmg','win-x64.exe','linux-x64.AppImage','linux-x64.deb'].map(n=>`Made-Mail-0.1.0-alpha.4-${n}`);
+    const names = ['mac-arm64.dmg','mac-x64.dmg','win-x64.exe','linux-x86_64.AppImage','linux-amd64.deb'].map(n=>`Made-Mail-0.1.0-alpha.4-${n}`);
     const run = tag => spawnSync(process.execPath, [script], { cwd, env:{...process.env, RELEASE_TAG:tag}, encoding:'utf8' });
     for (const name of names.slice(0,-1)) await writeFile(join(cwd,'release-assets',name),'abc');
     assert.notEqual(run('v0.1.0-alpha.4').status,0, 'missing DEB must block release');
@@ -27,7 +27,7 @@ test('explicit Windows/Linux preview scope cannot accidentally collect a Mac bin
  const cwd=await mkdtemp(join(tmpdir(),'mademail-preview-'));
  try{
   await mkdir(join(cwd,'release-assets'));await writeFile(join(cwd,'package.json'),JSON.stringify({version:'0.1.0-alpha.5'}));
-  for(const name of ['win-x64.exe','linux-x64.AppImage','linux-x64.deb'])await writeFile(join(cwd,'release-assets','Made-Mail-0.1.0-alpha.5-'+name),'fixture');
+  for(const name of ['win-x64.exe','linux-x86_64.AppImage','linux-amd64.deb'])await writeFile(join(cwd,'release-assets','Made-Mail-0.1.0-alpha.5-'+name),'fixture');
   const run=()=>spawnSync(process.execPath,[script],{cwd,env:{...process.env,RELEASE_TAG:'v0.1.0-alpha.5',RELEASE_PLATFORMS:'windows-linux'}});
   assert.equal(run().status,0);
   await writeFile(join(cwd,'release-assets/Made-Mail-0.1.0-alpha.5-mac-arm64.dmg'),'unsigned');assert.notEqual(run().status,0);
