@@ -1,34 +1,46 @@
-name: Publish requested alpha downloads
+name: Publish tested desktop preview downloads
 on:
   push:
-    branches: [release/downloadable-alpha]
+    branches: [release/downloadable-alpha, 'release/milestone-*']
   workflow_dispatch:
 permissions:
   contents: write
+  actions: read
+concurrency:
+  group: publish-desktop-preview
+  cancel-in-progress: false
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RELEASE_TAG: v0.1.0-alpha.1
     steps:
       - uses: actions/checkout@v4
-      - name: Verify existing candidate and checksums
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require a successful four-platform installer run for this exact commit
         shell: bash
         run: |
-          gh release view "$RELEASE_TAG" --json tagName,isPrerelease,assets > candidate.json
-          python3 - <<'PY'
-          import json
-          r=json.load(open('candidate.json'))
-          expected={'Made-Mail-0.1.0-alpha.1-mac-arm64.dmg','Made-Mail-0.1.0-alpha.1-mac-x64.dmg','Made-Mail-0.1.0-alpha.1-win-x64.exe','SHA256SUMS.txt'}
-          assert r['tagName']=='v0.1.0-alpha.1' and r['isPrerelease']
-          assert {a['name'] for a in r['assets']}==expected, 'Unexpected release assets'
-          PY
-          mkdir verified-assets
-          gh release download "$RELEASE_TAG" --dir verified-assets
-          cd verified-assets
-          sha256sum --check SHA256SUMS.txt
-      - name: Publish experimental prerelease requested by repository owner
-        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false --notes-file docs/releases/alpha-notes.md
+          candidate_run=$(gh run list --workflow desktop.yml --commit "$GITHUB_SHA" --event push --status success --json databaseId --jq '.[0].databaseId')
+          test -n "$candidate_run" && test "$candidate_run" != null
+          gh run download "$candidate_run" --name installer-win-x64 --dir release-assets
+          gh run download "$candidate_run" --name installer-linux-x64 --dir release-assets
+      - name: Validate declared platforms and write checksums
+        shell: bash
+        run: |
+          export RELEASE_TAG="v$(node -p 'require("./package.json").version')"
+          export RELEASE_PLATFORMS=windows-linux
+          node scripts/release-assets.mjs
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+      - name: Tag tested source and publish explicitly requested experimental downloads
+        shell: bash
+        run: |
+          if gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" > existing-tag.json 2>/dev/null; then
+            node -e 'const r=require("./existing-tag.json");if(r.object.sha!==process.env.GITHUB_SHA)throw Error("Existing tag points elsewhere; refusing to replace it")'
+          else
+            gh api "repos/$GH_REPO/git/refs" -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$GITHUB_SHA"
+          fi
+          gh release create "$RELEASE_TAG" release-assets/* --verify-tag --prerelease --latest=false --title "Made Mail $RELEASE_TAG — send/receive preview" --notes-file docs/releases/alpha-notes.md

@@ -36,3 +36,7 @@ OAuth packaging accepts public client IDs through repository Actions variables G
 ## Linux installer increment
 
 The desktop matrix also builds Linux x64 AppImage and DEB on Ubuntu 22.04, then launches the unpacked app under Xvfb with the sandbox enabled. Artifacts are uploaded only after the smoke test passes. Alpha draft collection now requires five exact installer filenames (two DMGs, Windows EXE, Linux AppImage and DEB). Package-manager installation, upgrade and clean-machine trust remain manual acceptance gates. See docs/INSTALLERS.md. No signing gate has been relaxed.
+
+## Requested milestone publication
+
+After the exact source commit passes Desktop installers, pushing that commit to a new release/milestone-* branch runs Publish tested desktop preview downloads. It selects a successful push-triggered installer run for the exact SHA, downloads only Windows/Linux artifacts, validates the version/three declared filenames and checksums, creates a non-overwriting matching source tag, and publishes a prerelease (never latest). No signing secrets are exposed. This replaces the alpha.1-specific publisher. Mac binaries are excluded, not exempted from trust checks; the existing all-platform tag/draft path retains its Mac trust gate. Reusing an existing published version fails rather than overwriting its assets. Bump the alpha version and rewrite release notes for each milestone.

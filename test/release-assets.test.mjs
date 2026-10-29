@@ -23,3 +23,13 @@ test('release collection requires every installer and hashes exact bytes', async
     for(const name of names) assert.ok(lines.includes(`ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  ${name}`));
   } finally { await rm(cwd,{recursive:true,force:true}); }
 });
+test('explicit Windows/Linux preview scope cannot accidentally collect a Mac binary',async()=>{
+ const cwd=await mkdtemp(join(tmpdir(),'mademail-preview-'));
+ try{
+  await mkdir(join(cwd,'release-assets'));await writeFile(join(cwd,'package.json'),JSON.stringify({version:'0.1.0-alpha.5'}));
+  for(const name of ['win-x64.exe','linux-x64.AppImage','linux-x64.deb'])await writeFile(join(cwd,'release-assets','Made-Mail-0.1.0-alpha.5-'+name),'fixture');
+  const run=()=>spawnSync(process.execPath,[script],{cwd,env:{...process.env,RELEASE_TAG:'v0.1.0-alpha.5',RELEASE_PLATFORMS:'windows-linux'}});
+  assert.equal(run().status,0);
+  await writeFile(join(cwd,'release-assets/Made-Mail-0.1.0-alpha.5-mac-arm64.dmg'),'unsigned');assert.notEqual(run().status,0);
+ }finally{await rm(cwd,{recursive:true,force:true});}
+});
