@@ -16,7 +16,7 @@ Windows x64 setup EXE and Linux x64 DEB/AppImage are below, with SHA256SUMS.txt.
 
 On Debian/Ubuntu: `sudo apt install ./Made-Mail-0.2.0-linux-amd64.deb`. The AppImage filename uses `linux-x86_64`.
 
-Mac: no trusted ready-to-install Mac binary is included. Quit Made Mail, run `git pull` in the existing checkout and then `pnpm desktop:install:mac` (Node 22+, pnpm 11.25.0). It copies the app into /Applications and preserves the existing app as a backup. Account/rule data is retained in the existing profile. Confirm About Made Mail says 0.2.0. Source ZIP/TAR assets are not built apps.
+Mac: no trusted ready-to-install Mac binary is included. Quit Made Mail, run `git pull` in the existing checkout and then `pnpm desktop:install:mac` (Node 22+, pnpm 11.25.0). It copies the app into /Applications and replaces the existing application without keeping a backup. Account/rule data is retained in the existing profile. Confirm About Made Mail says 0.2.0. Source ZIP/TAR assets are not built apps.
 
 ## Important limits
 Read-only authorizations stay read-only. A server must advertise IMAP MOVE for moving/deleting; unsupported servers fail clearly. Use Mailbox → Folder Settings if special folders are missing. Rules do not permanently delete or automatically reply. Automatic rules run only while open; the initial baseline leaves existing mail alone. Preview/Apply handles 50 recent inbox messages; automatic catch-up is bounded to 5,000. See docs/MAIL_WORKFLOWS.md.

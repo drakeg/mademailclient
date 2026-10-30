@@ -42,16 +42,16 @@ if pgrep -f "$target/Contents/MacOS/Made Mail" >/dev/null; then
   echo 'Quit the installed Made Mail app, then run this script again.' >&2
   exit 1
 fi
-backup=''
-if [[ -e "$target" ]]; then
-  backup="$destination/Made Mail.backup.$(date +%Y%m%d%H%M%S).$$.app"
-  install_command mv "$target" "$backup"
-fi
-if ! install_command ditto "$bundle" "$target"; then
-  install_command rm -rf "$target"
-  if [[ -n "$backup" ]]; then install_command mv "$backup" "$target"; fi
-  exit 1
-fi
+# Stage only the new build; replace the old bundle without retaining a backup.
+staging="$(install_command mktemp -d "$destination/.mademail-install.XXXXXX")"
+case "$staging" in
+  "$destination"/.mademail-install.*) ;;
+  *) echo 'Could not create the application staging directory.' >&2; exit 1 ;;
+esac
+cleanup() { install_command rm -rf "$staging"; }
+trap cleanup EXIT
+install_command ditto "$bundle" "$staging/Made Mail.app"
+install_command rm -rf "$target"
+install_command mv "$staging/Made Mail.app" "$target"
 echo "Installed local development build: $target"
 echo 'Open Made Mail from Applications. This is not a notarized public release.'
-if [[ -n "$backup" ]]; then echo "Previous app retained at: $backup"; fi
