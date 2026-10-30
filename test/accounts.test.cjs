@@ -31,3 +31,26 @@ test('IMAP sessions pin public addresses, validate TLS and select read-only with
  await assert.rejects(withInbox(account,()=>{}, {...deps,resolve:async()=>[{address:'8.8.8.8'},{address:'127.0.0.1'}]}));
  await assert.rejects(withInbox(account,async()=>{throw new Error('fetch failed');},deps));assert.equal(calls.at(-2),'release');assert.equal(calls.at(-1),'logout');
 });
+test('opening a message during a slow account operation is accepted rather than rejected as busy',async()=>{
+ const handlers={},contents={mainFrame:{url:'mademail://app/'}},event={sender:contents,senderFrame:contents.mainFrame};
+ let release,entered;const gate=new Promise(resolve=>release=resolve),started=new Promise(resolve=>entered=resolve);
+ const saved={id:'fixture',email:'me@example.com',host:'imap.example.com',username:'me'};let reads=0;
+ const vault={list:async()=>{if(++reads===1){entered();await gate;}return [saved];}};
+ registerAccounts({handle:(name,handler)=>handlers[name]=handler},()=>({webContents:contents}),vault,{readBody:async()=> 'Synthetic message body'});
+ const refresh=handlers['accounts:list'](event);await started;
+ const body=await handlers['accounts:body'](event,{accountId:'fixture',path:'INBOX',uid:1,validity:'1'});
+ release();await refresh;assert.equal(body.ok,true,body.error);assert.equal(body.data,'Synthetic message body');
+});
+test('account request queues bound concurrency, prioritize pending body reads and recover after failure',async()=>{
+ const {createOperationQueue}=require('../apps/desktop/accounts.cjs');const enqueue=createOperationQueue(1,4);let release;const gate=new Promise(resolve=>release=resolve),calls=[];
+ const first=enqueue(async()=>{calls.push('first');await gate;throw Error('synthetic failure');});const rejected=assert.rejects(first);
+ const background=enqueue(async()=>calls.push('background')),body=enqueue(async()=>calls.push('body'),1),last=enqueue(async()=>calls.push('last'));
+ await assert.rejects(enqueue(async()=>calls.push('overflow')));release();await rejected;await Promise.all([background,body,last]);assert.deepEqual(calls,['first','body','background','last']);
+});
+test('queued account writes recheck the requesting window before execution',async()=>{
+ const handlers={},contents={mainFrame:{url:'mademail://app/'}},event={sender:contents,senderFrame:contents.mainFrame};let open=true,release,entered,updates=0;
+ const gate=new Promise(resolve=>release=resolve),started=new Promise(resolve=>entered=resolve);
+ registerAccounts({handle:(name,handler)=>handlers[name]=handler},()=>open?{webContents:contents}:undefined,{update:async()=>{updates++;entered();await gate;}});
+ const first=handlers['accounts:remove'](event,'first');await started;const queued=handlers['accounts:remove'](event,'second');open=false;release();await first;
+ const result=await queued;assert.equal(result.ok,false);assert.equal(result.code,'REQUEST_CANCELLED');assert.equal(updates,1);
+});

@@ -23,6 +23,13 @@ function attachSmokeTest(app,window,Menu) {
    await engine.save({name:'Packaged rule',accountId:'fixture-main',enabled:true,stopProcessing:true,match:'all',conditions:[{field:'subject',operator:'contains',value:'invoice'}],exceptions:[],actions:[{type:'trash'}]});
    const planned=await engine.preview('fixture-main');if(planned.matches.length!==1)throw new Error('Packaged rule planner unavailable');
    const executed=await engine.run(planned.token);if(executed.done!==1||moved!==1)throw new Error('Packaged rule adapter unavailable');
+   const {registerAccounts}=require('./accounts.cjs');const accountHandlers={};let releaseRead,enteredRead;
+   const blockedRead=new Promise(resolve=>releaseRead=resolve),readStarted=new Promise(resolve=>enteredRead=resolve);let listCalls=0;
+   registerAccounts({handle:(name,handler)=>accountHandlers[name]=handler},()=>window,{list:async()=>{if(++listCalls===1){enteredRead();await blockedRead;}return [{id:'overlap-fixture',email:'owner@example.com'}];}},{readBody:async()=> 'Synthetic overlapping body'});
+   const accountEvent={sender:window.webContents,senderFrame:window.webContents.mainFrame};
+   const held=accountHandlers['accounts:list'](accountEvent);await readStarted;
+   const opened=await accountHandlers['accounts:body'](accountEvent,{accountId:'overlap-fixture',path:'INBOX',uid:1,validity:'1'});releaseRead();await held;
+   if(!opened.ok||opened.data!=='Synthetic overlapping body')throw new Error('Message read rejected during overlapping refresh');
    const prefs=window.webContents.getLastWebPreferences();
    if(!prefs.sandbox||!prefs.contextIsolation||prefs.nodeIntegration)throw new Error('Unsafe renderer preferences');
    if(!window.isClosable()||!window.isMinimizable()||!window.isMaximizable()||window.isFullScreen())throw new Error('Native window controls unavailable');
@@ -89,7 +96,7 @@ function attachSmokeTest(app,window,Menu) {
     const tools=createMailTools({el:id=>document.getElementById(id),text:helper,getAccounts:()=>[{id:'fixture',email:'owner@example.com'}],getFolders:()=>[{name:'Deleted Items',path:'Trash'}],refresh:async()=>{},notice:()=>{},client:{getSettings:async()=>({ok:true,data:[]}),saveSettings:async input=>{folderSettings=input;return {ok:true,data:input};}}});
     await tools.folderSettings();document.querySelector('#folder-trash').value='Trash';document.querySelector('#folder-settings-form').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));await wait(()=>document.querySelector('#folder-settings-status').textContent.includes('saved'));assert(folderSettings.folders.trash==='Trash','Folder mapping persisted');document.querySelector('#folder-settings').close();
    `);
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:42}));
+   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:44}));
    clearTimeout(timeout);app.exit(0);
   }catch(error){fail(error.message);}
  });

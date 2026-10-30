@@ -1,3 +1,4 @@
+import {reconcileMessage,patchMessageFlags} from '/packages/core/message-state.mjs';
 document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'desktop' : 'browser';
 import {createMailTools} from '/apps/web/mail-tools.mjs';
 import {createRuleEditor} from '/apps/web/rule-editor.mjs';
@@ -26,7 +27,8 @@ messages=[];
 let demo=false, accounts=[], loading=false,actionBusy=false;
 let savedFolderSettings=[];
 const bodyRequests=new Map();
-let accountQueue=Promise.resolve();
+const confirmedFlags=new Map();
+function updateFlags(id,patch){confirmedFlags.set(id,{...confirmedFlags.get(id),...patch});messages=patchMessageFlags(messages,id,patch);}
 const foldersByAccount=new Map(), folderPages=new Map();
 let view='inbox', unreadOnly=false, selectedId='1', noticeTimer;
 const el=id=>document.getElementById(id);
@@ -68,7 +70,7 @@ function renderReader(visible){
  const label=text('div','',el('reader'),'reader-label');text('i','',label,`account-dot ${m.accountId}`);text('span',`${accountName(m.accountId)} / ${m.folder==='inbox'?'Inbox':foldersByAccount.get(m.accountId)?.find(f=>f.path===m.path)?.name||m.folder}`,label);
  text('h2',m.subject,el('reader'));
  const sender=text('div','',el('reader'),'sender-card');text('div',m.from.split(' ').slice(0,2).map(w=>w[0]).join(''),sender,'avatar');const info=text('div','',sender,'sender-info');text('strong',m.from,info);text('p',`${m.email} → ${m.to}`,info);text('span',m.time,sender,'sender-date');
- text('div',m.body,el('reader'),'message-body');
+ text('div',m.loading?'Loading message…':m.body,el('reader'),'message-body');
  if(m.hasAttachment){const attachment=text('div','',el('reader'),'attachment');icon('paperclip',attachment);const info=text('div','',attachment);text('strong',m.attachment,info);text('small','Sample attachment · preview only',info);}
  document.querySelectorAll('[data-action="flag"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.flagged)));
  document.querySelectorAll('[data-action="unread"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.unread)));
@@ -100,7 +102,7 @@ async function performMessageAction(action){
  if(!messageCommands(commandMessage(m),{canModify:canModify(m),canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))})[action]?.enabled)return;
  if(!demo){
   actionBusy=true;render();
-  try{const actual=action==='unread'?(m.unread?'markRead':'markUnread'):action==='flag'?(m.flagged?'unflag':'flag'):action;await mailTools.apply(m,actual);if(['archive','trash','junk','notJunk'].includes(action))messages=messages.filter(item=>item.id!==m.id);else if(action==='unread')m.unread=!m.unread;else if(action==='flag')m.flagged=!m.flagged;await refreshAccounts();notice('Mailbox change saved to the server.');}catch(e){notice(e.message);}finally{actionBusy=false;render();}return;
+  try{const actual=action==='unread'?(m.unread?'markRead':'markUnread'):action==='flag'?(m.flagged?'unflag':'flag'):action;await mailTools.apply(m,actual);if(['archive','trash','junk','notJunk'].includes(action)){messages=messages.filter(item=>item.id!==m.id);confirmedFlags.delete(m.id);}else if(action==='unread')updateFlags(m.id,{unread:!m.unread});else if(action==='flag')updateFlags(m.id,{flagged:!m.flagged});await refreshAccounts();notice('Mailbox change saved to the server.');}catch(e){notice(e.message);}finally{actionBusy=false;render();}return;
  }
  messages=messages.map(item=>item.id===m.id?applyDemoMessageAction(item,action):item);
  render();notice(action==='notJunk'?'Sample message moved to Inbox.':action==='junk'?'Sample message moved to Junk.':action==='trash'?'Sample message moved to Deleted Items.':'Sample message updated.');
@@ -186,16 +188,18 @@ function rebuildAccounts(){
  mode.querySelector('span').textContent=demo?'Fictional mail · changes reset on reload':'Live folders · refresh every minute while open';
 }
 async function api(name,input){
- const task=accountQueue.then(async()=>{try{const result=await window.desktopMail.accounts[name](input);if(!result.ok)throw new Error(result.error);return result.data;}catch(error){notice(error.message||'Account operation failed.');return undefined;}});accountQueue=task.catch(()=>{});return task;
+ try{const result=await window.desktopMail.accounts[name](input);if(!result.ok)throw new Error(result.error);return result.data;}catch(error){notice(error.message||'Account operation failed.');return undefined;}
 }
 async function loadSelectedBody(markRead=false){
  const m=messages.find(m=>m.id===selectedId);if(demo||!m?.uid)return;
  if(!m.loaded){
   let pending=bodyRequests.get(m.id);
   if(!pending){pending=api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});bodyRequests.set(m.id,pending);}
-  try{const body=await pending;if(body!==undefined){const current=messages.find(item=>item.id===m.id);if(current){current.body=body;current.loaded=true;}m.body=body;m.loaded=true;render();}}finally{bodyRequests.delete(m.id);}
+  m.loading=true;render();
+  try{const body=await pending;const current=messages.find(item=>item.id===m.id);if(body!==undefined){if(current){current.body=body;current.loaded=true;}m.body=body;m.loaded=true;}else if(current)current.body='Could not load this message. Select it again or refresh the folder.';}
+  finally{m.loading=false;const current=messages.find(item=>item.id===m.id);if(current)current.loading=false;bodyRequests.delete(m.id);render();}
  }
- if(markRead&&m.loaded&&m.unread&&canModify(m))try{await mailTools.apply(m,'markRead');m.unread=false;render();}catch(e){notice(e.message);}
+ if(markRead&&m.loaded&&m.unread&&messages.some(item=>item.id===m.id)&&canModify(m))try{await mailTools.apply(m,'markRead');updateFlags(m.id,{unread:false});m.unread=false;render();}catch(e){notice(e.message);}
 }
 async function fetchPage(accountId,path='INBOX',older=false){
  const key=accountId+':'+path,previous=folderPages.get(key);
@@ -203,8 +207,11 @@ async function fetchPage(accountId,path='INBOX',older=false){
  const result=await api('folder',{accountId,path,...(older?{before:previous.before,validity:previous.validity}:{})});
  if(!result)return;
  if(result.ruleError)notice(result.ruleError);
+ const previousMessages=new Map(messages.map(m=>[m.id,m]));
  if(!older)messages=messages.filter(m=>m.accountId!==accountId||m.path!==path);
- const ids=new Set(messages.map(m=>m.id));messages.push(...result.messages.filter(m=>!ids.has(m.id)));
+ const ids=new Set(messages.map(m=>m.id));
+ for(const fresh of result.messages){if(ids.has(fresh.id))continue;const reconciled=reconcileMessage(fresh,previousMessages.get(fresh.id),confirmedFlags.get(fresh.id));if(Object.keys(reconciled.pending).length)confirmedFlags.set(fresh.id,reconciled.pending);else confirmedFlags.delete(fresh.id);messages.push(reconciled.message);}
+ for(const id of confirmedFlags.keys())if(!messages.some(m=>m.id===id))confirmedFlags.delete(id);
  folderPages.set(key,result);
 }
 async function loadCurrentFolder(older=false,markRead=false){
@@ -218,7 +225,7 @@ async function loadCurrentFolder(older=false,markRead=false){
 async function refreshAccounts(){
  if(loading)return;loading=true;el('refresh').setAttribute('aria-busy','true');
  if(demo){messages=[];view='inbox';}demo=false;render();
- try{const list=await api('list');if(!list)return;accounts=list;try{savedFolderSettings=await mailTools.settings();}catch{}messages=messages.filter(m=>accounts.some(a=>a.id===m.accountId));for(const a of accounts){const folders=await api('folders',a.id);if(folders)foldersByAccount.set(a.id,folders);await fetchPage(a.id);}rebuildAccounts();messages.sort((a,b)=>new Date(b.receivedAt)-new Date(a.receivedAt));}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
+ try{const list=await api('list');if(!list)return;const changed=new Set(list.filter(a=>{const old=accounts.find(item=>item.id===a.id);return old&&[old.host,old.port,old.username,old.email].join('|')!==[a.host,a.port,a.username,a.email].join('|');}).map(a=>a.id));messages=messages.filter(m=>!changed.has(m.accountId));accounts=list;try{savedFolderSettings=await mailTools.settings();}catch{}messages=messages.filter(m=>accounts.some(a=>a.id===m.accountId));for(const a of accounts){const folders=await api('folders',a.id);if(folders)foldersByAccount.set(a.id,folders);await fetchPage(a.id);}rebuildAccounts();messages.sort((a,b)=>new Date(b.receivedAt)-new Date(a.receivedAt));}finally{loading=false;el('refresh').setAttribute('aria-busy','false');render();}
  if(view.includes(':'))await loadCurrentFolder();else await loadSelectedBody();
 }
 el('load-older').onclick=()=>loadCurrentFolder(true);

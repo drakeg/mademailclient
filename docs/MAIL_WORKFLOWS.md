@@ -1,4 +1,4 @@
-# Mail workflows in 0.2.0
+# Mail workflows in 0.2.1
 
 This release replaces sample-only mailbox controls and preview-only rules with working IMAP actions and persisted rules. SMTP compose/reply/forward is retained. The app remains an original Electron email client; no Outlook or Apple Mail code/assets are copied.
 
@@ -8,7 +8,7 @@ Add and edit accounts through Made Mail/File → Accounts. Incoming/outgoing ser
 
 Select a message to load its plain-text body and mark it read. The reader and native Message menu support Reply, Reply All, Forward, Move to Folder, Archive, Delete, Junk/Not Junk, read/unread and flags for writable accounts. Delete moves to Trash; it cannot turn into permanent deletion. A message in Junk offers Not Junk, which moves it to the same account's Inbox. Moving to Junk does not promise provider-specific spam training. SMTP forwarding quotes loaded text; attachments are not forwarded yet.
 
-Account requests are serialized in the renderer so opening a message no longer competes with refresh operations. A message is marked read on an explicit selection; manual Mark as Unread is preserved until it is selected again. Body previews remain bounded to 2 MB of source and 200,000 text characters. Mail bodies are not cached across app restarts.
+The main process now uses bounded account request queues instead of rejecting requests whenever another operation is active. Reads allow three concurrent tasks with pending message-body requests prioritized; settings changes remain serialized; discovery has a separate two-task queue. Authorization is checked both before enqueueing and before executing. Each queue caps active plus pending requests at 100. Failed tasks release their slots. This queues each original request once; it does not retry a failed mail mutation. Confirmed read/flag changes are overlaid until server metadata acknowledges them, and loaded bodies survive metadata refreshes for unchanged message IDs. Changing account identity/server settings invalidates cached bodies. A message is marked read on an explicit selection; manual Mark as Unread is preserved until it is selected again. Body previews remain bounded to 2 MB of source and 200,000 text characters. Mail bodies are not cached across app restarts.
 
 ## Rules
 
