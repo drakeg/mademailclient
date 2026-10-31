@@ -1,7 +1,7 @@
 # Made Mail 0.2.2 — installer coverage
 
 ## Added
-- Linux x64 RPM installer alongside DEB, AppImage and Windows EXE. Install on Fedora with `sudo dnf install ./Made-Mail-0.2.2-linux-x64.rpm`. RPM metadata and packaged synthetic launch are checked in CI; native distro installation acceptance remains pending.
+- Linux x64 RPM installer alongside DEB, AppImage and Windows EXE. Install on Fedora with `sudo dnf install ./Made-Mail-0.2.2-linux-x86_64.rpm`. RPM metadata and packaged synthetic launch are checked in CI; native distro installation acceptance remains pending.
 - Protected Apple Silicon and Intel Mac signing/notarization release jobs. Trusted DMGs are included only when the maintainer enables signing and both jobs pass. Without Developer ID/notarization credentials, no Mac installer is published. See docs/MAC_SIGNING.md for setup.
 
 ## Included mail features

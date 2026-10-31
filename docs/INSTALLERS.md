@@ -38,11 +38,11 @@ sudo apt install ./Made-Mail-<version>-linux-amd64.deb
 On Fedora and compatible RPM distributions, use the RPM download:
 
 ```sh
-sudo dnf install ./Made-Mail-<version>-linux-x64.rpm
+sudo dnf install ./Made-Mail-<version>-linux-x86_64.rpm
 # Remove with: sudo dnf remove mademailclient
 ```
 
-On openSUSE use `sudo zypper install ./Made-Mail-<version>-linux-x64.rpm`. Distro compatibility and native install/upgrade acceptance remain to be tested; package metadata and the unpacked app are checked in CI.
+On openSUSE use `sudo zypper install ./Made-Mail-<version>-linux-x86_64.rpm`. Distro compatibility and native install/upgrade acceptance remain to be tested; package metadata and the unpacked app are checked in CI.
 
 Launch Made Mail from the application menu. Remove with `sudo apt remove mademailclient`. Your account data is retained. Other distributions can try the AppImage:
 
