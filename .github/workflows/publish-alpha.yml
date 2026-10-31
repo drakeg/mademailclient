@@ -70,6 +70,7 @@ jobs:
           node -e 'require("fs").writeFileSync(process.env.APPLE_API_KEY,Buffer.from(process.env.APPLE_API_KEY_BASE64,"base64"),{mode:0o600})'
           pnpm exec electron-builder --config scripts/electron-builder-mac-release.cjs --mac --${{ matrix.arch }} --publish never
           for dmg in dist/*.dmg; do
+            codesign --verify --strict --verbose=2 "$dmg"
             xcrun notarytool submit "$dmg" --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait
             xcrun stapler staple "$dmg"
             xcrun stapler validate "$dmg"

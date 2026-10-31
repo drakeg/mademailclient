@@ -3,6 +3,7 @@ const { build } = require('../package.json');
 module.exports = {
   ...build,
   forceCodeSigning: true,
+  dmg: { ...build.dmg, sign: true },
   mac: {
     ...build.mac,
     hardenedRuntime: true,
