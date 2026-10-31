@@ -1,6 +1,7 @@
 const { readFile } = require('node:fs/promises');
 const { join } = require('node:path');
 const routes = new Map([
+  ['/apps/web/attachments.mjs',['apps/web/attachments.mjs','text/javascript']],
   ['/packages/core/message-state.mjs',['packages/core/message-state.mjs','text/javascript']],
   ['/apps/web/mail-tools.mjs',['apps/web/mail-tools.mjs','text/javascript']],
   ['/apps/web/rule-editor.mjs',['apps/web/rule-editor.mjs','text/javascript']],

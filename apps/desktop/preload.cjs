@@ -12,7 +12,8 @@ contextBridge.exposeInMainWorld('desktopMail', {
   mail: Object.fromEntries(['apply','history','getSettings','saveSettings'].map(name=>[name,input=>ipcRenderer.invoke('mail:'+name,input)])),
   rules: Object.fromEntries(['list','save','remove','reorder','preview','run'].map(name=>[name,input=>ipcRenderer.invoke('rules:'+name,input)])),
   outgoing: Object.fromEntries(['list','save','discard','send'].map(name=>[name,input=>ipcRenderer.invoke('outgoing:'+name,input)])),
-  accounts: Object.fromEntries(['list','add','update','discover','remove','inbox','body','folders','folder','providers','signIn','cancelSignIn'].map(name => [name, input => ipcRenderer.invoke('accounts:'+name,input)])),
+  attachments: {save:input=>ipcRenderer.invoke('attachments:save',input)},
+  accounts: Object.fromEntries(['list','add','update','discover','remove','inbox','body','content','folders','folder','providers','signIn','cancelSignIn'].map(name => [name, input => ipcRenderer.invoke('accounts:'+name,input)])),
   onAccountsCommand: callback => {
     if (typeof callback !== 'function') return;
     const listener = (_event, mode) => { if (['add','manage'].includes(mode)) callback(mode); };

@@ -30,6 +30,10 @@ function attachSmokeTest(app,window,Menu) {
    const held=accountHandlers['accounts:list'](accountEvent);await readStarted;
    const opened=await accountHandlers['accounts:body'](accountEvent,{accountId:'overlap-fixture',path:'INBOX',uid:1,validity:'1'});releaseRead();await held;
    if(!opened.ok||opened.data!=='Synthetic overlapping body')throw new Error('Message read rejected during overlapping refresh');
+   const {readMessageContent,publicContent}=require('./incoming.cjs');
+   const raw=Buffer.from('MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="smoke"\r\n\r\n--smoke\r\nContent-Type: text/plain\r\n\r\nSynthetic attachment smoke.\r\n--smoke\r\nContent-Type: text/plain\r\nContent-Disposition: attachment; filename="notes.txt"\r\nContent-Transfer-Encoding: base64\r\n\r\nc21va2U=\r\n--smoke--\r\n');
+   const received=await readMessageContent({},{accountId:'fixture',path:'INBOX',uid:1,validity:'1'},{withMailbox:async(_a,_path,read)=>read({mailbox:{uidValidity:'1'},fetchOne:async(_uid,q)=>q.size?{size:raw.length}:{source:raw}})});
+   if(publicContent(received).attachments[0].content!==undefined||received.attachments[0].content.toString()!=='smoke')throw new Error('Packaged MIME attachment unavailable');
    const prefs=window.webContents.getLastWebPreferences();
    if(!prefs.sandbox||!prefs.contextIsolation||prefs.nodeIntegration)throw new Error('Unsafe renderer preferences');
    if(!window.isClosable()||!window.isMinimizable()||!window.isMaximizable()||window.isFullScreen())throw new Error('Native window controls unavailable');
@@ -96,7 +100,18 @@ function attachSmokeTest(app,window,Menu) {
     const tools=createMailTools({el:id=>document.getElementById(id),text:helper,getAccounts:()=>[{id:'fixture',email:'owner@example.com'}],getFolders:()=>[{name:'Deleted Items',path:'Trash'}],refresh:async()=>{},notice:()=>{},client:{getSettings:async()=>({ok:true,data:[]}),saveSettings:async input=>{folderSettings=input;return {ok:true,data:input};}}});
     await tools.folderSettings();document.querySelector('#folder-trash').value='Trash';document.querySelector('#folder-settings-form').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));await wait(()=>document.querySelector('#folder-settings-status').textContent.includes('saved'));assert(folderSettings.folders.trash==='Trash','Folder mapping persisted');document.querySelector('#folder-settings').close();
    `);
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:44}));
+   await run(`
+    const {createAttachmentView}=await import('/apps/web/attachments.mjs');let saves=0,savedInput,status;
+    const host=document.createElement('div');document.body.append(host);
+    const fixture={id:'attachment-fixture',accountId:'fixture',path:'INBOX',uid:1,validity:'1',attachments:[{index:0,filename:'<notes>.txt',contentType:'text/plain',size:5,digest:'a'.repeat(64),canSave:true}]};
+    const helper=(tag,value,parent,className)=>{const n=document.createElement(tag);n.textContent=value;if(className)n.className=className;parent.append(n);return n;};let view;
+    const repaint=()=>{host.replaceChildren();view.render(fixture,host);};
+    view=createAttachmentView({client:{save:async input=>{saves++;savedInput=input;return {ok:true,data:{canceled:false}};}},text:helper,icon:()=>{},notice:value=>status=value,onChange:repaint});repaint();
+    assert(host.textContent.includes('<notes>.txt')&&!host.querySelector('notes'),'Attachment names render as text');
+    host.querySelector('button').click();await wait(()=>status?.startsWith('Saved '));assert(saves===1&&savedInput.uid===1&&savedInput.digest==='a'.repeat(64)&&!('filePath' in savedInput),'Save sends message identity, never a file path');
+    fixture.attachments[0].canSave=false;repaint();assert(host.querySelector('button').disabled,'Oversized attachment saving disabled');host.remove();
+   `);
+   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:48}));
    clearTimeout(timeout);app.exit(0);
   }catch(error){fail(error.message);}
  });

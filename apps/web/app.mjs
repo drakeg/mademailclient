@@ -1,3 +1,4 @@
+import {createAttachmentView} from '/apps/web/attachments.mjs';
 import {reconcileMessage,patchMessageFlags} from '/packages/core/message-state.mjs';
 document.documentElement.dataset.shell = window.desktopMail?.isDesktop ? 'desktop' : 'browser';
 import {createMailTools} from '/apps/web/mail-tools.mjs';
@@ -34,6 +35,7 @@ let view='inbox', unreadOnly=false, selectedId='1', noticeTimer;
 const el=id=>document.getElementById(id);
 const text=(tag,value,parent,className)=>{const n=document.createElement(tag);n.textContent=value;if(className)n.className=className;parent.append(n);return n;};
 const icon=(name,parent)=>{const n=document.createElementNS('http://www.w3.org/2000/svg','svg');n.setAttribute('class','icon');n.setAttribute('aria-hidden','true');const use=document.createElementNS(n.namespaceURI,'use');use.setAttribute('href',`#i-${name}`);n.append(use);parent.append(n);return n;};
+const attachments=createAttachmentView({client:window.desktopMail?.attachments,text,icon,notice,onChange:()=>render()});
 const names={inbox:'All inboxes',work:'alex@northstar.example',personal:'alex@icloud.example',sent:'Sent',projects:'Projects',unread:'Unread',flagged:'Flagged',archive:'Archive',junk:'Junk',trash:'Deleted items','work:sent':'Work · Sent','personal:sent':'Personal · Sent','work:projects':'Work · Projects'};
 const accountName=id=>accounts.find(a=>a.id===id)?.email||(id==='work'?'alex@northstar.example':'alex@icloud.example');
 const folderNames={inbox:'Inbox',drafts:'Drafts',sent:'Sent Items',trash:'Deleted Items',junk:'Junk Email',archive:'Archive',projects:'Projects'};
@@ -71,7 +73,8 @@ function renderReader(visible){
  text('h2',m.subject,el('reader'));
  const sender=text('div','',el('reader'),'sender-card');text('div',m.from.split(' ').slice(0,2).map(w=>w[0]).join(''),sender,'avatar');const info=text('div','',sender,'sender-info');text('strong',m.from,info);text('p',`${m.email} → ${m.to}`,info);text('span',m.time,sender,'sender-date');
  text('div',m.loading?'Loading message…':m.body,el('reader'),'message-body');
- if(m.hasAttachment){const attachment=text('div','',el('reader'),'attachment');icon('paperclip',attachment);const info=text('div','',attachment);text('strong',m.attachment,info);text('small','Sample attachment · preview only',info);}
+ attachments.render(m,el('reader'));
+ if(demo&&m.hasAttachment){const attachment=text('div','',el('reader'),'attachment');icon('paperclip',attachment);const info=text('div','',attachment);text('strong',m.attachment,info);text('small','Sample attachment · preview only',info);}
  document.querySelectorAll('[data-action="flag"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.flagged)));
  document.querySelectorAll('[data-action="unread"]').forEach(button=>button.setAttribute('aria-pressed',String(!!m.unread)));
 }
@@ -194,9 +197,9 @@ async function loadSelectedBody(markRead=false){
  const m=messages.find(m=>m.id===selectedId);if(demo||!m?.uid)return;
  if(!m.loaded){
   let pending=bodyRequests.get(m.id);
-  if(!pending){pending=api('body',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});bodyRequests.set(m.id,pending);}
+  if(!pending){pending=api('content',{accountId:m.accountId,uid:m.uid,validity:m.validity,path:m.path});bodyRequests.set(m.id,pending);}
   m.loading=true;render();
-  try{const body=await pending;const current=messages.find(item=>item.id===m.id);if(body!==undefined){if(current){current.body=body;current.loaded=true;}m.body=body;m.loaded=true;}else if(current)current.body='Could not load this message. Select it again or refresh the folder.';}
+  try{const content=await pending;const current=messages.find(item=>item.id===m.id);if(content!==undefined){const patch={body:content.text,attachments:content.attachments,hasAttachment:content.attachments.length>0,loaded:true};if(current)Object.assign(current,patch);Object.assign(m,patch);}else if(current)current.body='Could not load this message. Select it again or refresh the folder.';}
   finally{m.loading=false;const current=messages.find(item=>item.id===m.id);if(current)current.loading=false;bodyRequests.delete(m.id);render();}
  }
  if(markRead&&m.loaded&&m.unread&&messages.some(item=>item.id===m.id)&&canModify(m))try{await mailTools.apply(m,'markRead');updateFlags(m.id,{unread:false});m.unread=false;render();}catch(e){notice(e.message);}

@@ -7,6 +7,7 @@ const { discoverAccount } = require('./account-discovery.cjs');
 const { assertProviderHosts } = require('./oauth-providers.cjs');
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
+const {readMessageContent,publicContent,messageReference}=require('./incoming.cjs');
 function validateAccount(value) {
  if(!value||typeof value!=='object')throw new Error('Invalid account');
  const account={email:emailAddress(value.email),...endpoint(value,'imap'),username:field(value.username,'username'),password:field(value.password,'password',1024)};
@@ -133,13 +134,14 @@ function registerAccounts(ipcMain,getWindow,vault,{testInbox=a=>withInbox(a,asyn
   folders:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return listFolders(await resolveAccount(a));},
   folder:async input=>{if(!input||typeof input.accountId!=='string')throw new Error('Select an account');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');const prepared=await resolveAccount(a),page=await fetchFolder(prepared,input);if((input.path||'INBOX').toUpperCase()==='INBOX'&&input.before===undefined){try{if(await onInbox(prepared,page))return fetchFolder(prepared,input);}catch(e){page.ruleError=e.publicMessage||'Automatic rules could not complete. Review Action History.';}}return page;},
   inbox:async id=>{const a=(await vault.list()).find(a=>a.id===id);if(!a)throw new Error('Account not found');return fetchInbox(await resolveAccount(a));},
+  content:async input=>{const ref=messageReference(input),account=(await vault.list()).find(a=>a.id===ref.accountId);if(!account)throw setupError('ACCOUNT_NOT_FOUND','This account was removed.');return publicContent(await readMessageContent(await resolveAccount(account),ref,{withMailbox}));},
   body:async input=>{if(!input||!Number.isSafeInteger(input.uid)||input.uid<1||typeof input.validity!=='string')throw new Error('Invalid message');const a=(await vault.list()).find(a=>a.id===input.accountId);if(!a)throw new Error('Account not found');return readBody(await resolveAccount(a),input); }
  };
  for(const [name,handler]of Object.entries(handlers))ipcMain.handle(`accounts:${name}`,async(event,input)=>{
   const contents=getWindow()?.webContents;
   if(!contents||event.sender!==contents||event.senderFrame!==contents.mainFrame||event.senderFrame.url!=='mademail://app/')return {ok:false,error:'Unauthorized request'};
   const enqueue=name==='discover'?discovery:['add','update','remove'].includes(name)?settings:reads;
-  try{return {ok:true,data:await enqueue(()=>{const active=getWindow()?.webContents;if(!active||event.sender!==active||event.senderFrame!==active.mainFrame||event.senderFrame.url!=='mademail://app/')throw setupError('REQUEST_CANCELLED','The requesting window closed. Reopen the account or message.');return handler(input);},name==='body'?1:0)};}catch(error){return {ok:false,code:error.publicCode||'ACCOUNT_OPERATION_FAILED',error:error.publicMessage||'Account operation failed. Check the network and OS credential storage. Existing accounts were preserved.'};}
+  try{return {ok:true,data:await enqueue(()=>{const active=getWindow()?.webContents;if(!active||event.sender!==active||event.senderFrame!==active.mainFrame||event.senderFrame.url!=='mademail://app/')throw setupError('REQUEST_CANCELLED','The requesting window closed. Reopen the account or message.');return handler(input);},['body','content'].includes(name)?1:0)};}catch(error){return {ok:false,code:error.publicCode||'ACCOUNT_OPERATION_FAILED',error:error.publicMessage||'Account operation failed. Check the network and OS credential storage. Existing accounts were preserved.'};}
  });
 }
 module.exports={validateAccount,publicAddress,createVault,registerAccounts,createOperationQueue,withInbox,withConnection,withMailbox,listFolders,fetchFolder,accountSummary};

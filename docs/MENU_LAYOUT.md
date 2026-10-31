@@ -1,3 +1,7 @@
+# 0.3.0 received attachments
+
+Received attachment rows and Save As belong in the reading pane. Save As uses the OS native file dialog; it adds no sidebar command or utility menu. Forward continues to include text only. See [ATTACHMENTS.md](ATTACHMENTS.md).
+
 # Current 0.2.0 menu and mailbox contract
 
 The desktop uses native OS menus; the browser uses a top menu. Accounts belong in Made Mail/File, Rules and Folder Settings/Action History in Mailbox, and selected-message actions in Message/the reader. The sidebar contains folder navigation only.

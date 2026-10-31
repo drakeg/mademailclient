@@ -32,3 +32,7 @@ The desktop account service now also stores encrypted SMTP settings, supports se
 ## 0.2.0 desktop mutation and rule worker
 
 mail-actions.cjs is the authorized writable IMAP boundary, with same-account destination validation, mandatory server MOVE capability and encrypted durable operation claims. mail-rules.cjs persists definitions/cursors and uses the pure core planner; it processes new inbox envelopes during foreground polling and supports single-use recent-mail preview/apply. There is no always-on backend worker. Both services have fixed same-origin/main-frame IPC and no generic filesystem/network interface. See MAIL_WORKFLOWS.md for state transitions, deduplication scope and acceptance limits.
+
+## Received MIME attachments
+
+incoming.cjs parses a bounded source behind the existing read-only TLS account boundary. accounts:content returns text and metadata; attachments:save refetches/verifies the attachment and writes only to a native-dialog destination through exclusive creation. No decoded bytes or general filesystem access reach the renderer. This supersedes the earlier text-preview-only receive path. See ATTACHMENTS.md.

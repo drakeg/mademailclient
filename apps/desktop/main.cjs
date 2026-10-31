@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain, safeStorag
 const {createMailActions,registerMailActions}=require('./mail-actions.cjs');
 const {createMailRules,registerMailRules}=require('./mail-rules.cjs');
 const {createOutgoing,registerOutgoing}=require('./outgoing.cjs');
+const {registerAttachments}=require('./attachments.cjs');
 const { createOAuthService } = require('./oauth-service.cjs');
 const { registerOAuthIPC } = require('./oauth-ipc.cjs');
 const { verifySmtp } = require('./smtp.cjs');
@@ -74,6 +75,7 @@ if(primary)app.whenReady().then(()=>{
   const mailActions=createMailActions({vault,journal:encrypted('mail-actions'),settings:encrypted('folder-settings'),resolveAccount:a=>oauthService.prepare(a)});
   const mailRules=createMailRules({vault,store:encrypted('rules'),cursors:encrypted('rule-cursors'),actions:mailActions,resolveAccount:a=>oauthService.prepare(a)});
   registerMailActions(ipcMain,()=>window,mailActions);registerMailRules(ipcMain,()=>window,mailRules);
+  registerAttachments(ipcMain,()=>window,vault,dialog,{resolveAccount:a=>oauthService.prepare(a)});
   registerAccounts(ipcMain,()=>window,vault,{resolveAccount:account=>oauthService.prepare(account),onInbox:(account,page)=>mailRules.processIncoming(account,page)});
   const journal=createVault(join(app.getPath('userData'),'outgoing.enc'),safeStorage);
   registerOutgoing(ipcMain,()=>window,createOutgoing({vault,journal,resolveAccount:account=>oauthService.prepare(account)}));

@@ -18,7 +18,7 @@ export function createComposer({el,text,getAccounts,notice,outgoing=window.deskt
   for(const key of ['to','cc','bcc'])fields[key].value=Array.isArray(record[key])?record[key].join(', '):record[key]||'';
   fields.subject.value=record.subject||'';fields.text.value=record.text||'';
   id=record.id;replyId=record.inReplyTo;dirty=false;locked=!!record.status&&record.status!=='draft';busy=false;
-  state(locked?statusText(record):'Plain-text mail. Drafts are saved locally and encrypted. Attachments are not supported yet.');
+  state(locked?statusText(record):'Plain-text mail. Drafts are saved locally and encrypted. Sending attachments is not supported yet; forwarding includes text only.');
  }
  function open(action='compose',message){
   if(!outgoing||!getAccounts().some(canSendAccount)){notice('Add an account with outgoing SMTP settings first.');return;}

@@ -126,3 +126,9 @@ Reproduced the reported “another account operation” popup with a failing con
 ## 0.2.2 installer coverage (2026-10-30)
 
 X00 extends Linux packaging to RPM, alongside DEB/AppImage. X03 now has a protected, opt-in signed/notarized Intel/Apple Silicon workflow with app and DMG verification, exact-source build selection, and strict release collection. Apple Developer signing credentials are still required; this is configured code, not evidence of a trusted Mac download. RPM native distro install/upgrade acceptance remains open.
+
+## 0.3.0 received attachments (2026-10-30)
+
+U02c delivers received attachment lists and explicit native Save As from the reading pane. It replaces the live renderer's 2 MiB preview path with a bounded 25 MiB MIME content request, retaining text and attachment metadata through refreshes. Saved attachment bytes are revalidated against stable message identity and SHA-256; no renderer-selected file paths, automatic opening, overwrite or symlink replacement is accepted. See ATTACHMENTS.md for contracts and test evidence. Implemented with synthetic validation; native dialog/real-provider acceptance remains open.
+
+Next usable-mail slices: U02d attach files to compose/reply/forward with encrypted draft retention, bounded file selection and submission safety; S01d incremental background receive/connection diagnostics; R03 explicit permanent purge and R04 automatic replies with durable loop suppression/cooldown. These remain backlog, not release claims.
