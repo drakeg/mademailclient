@@ -1,6 +1,6 @@
 {
   "name": "mademailclient",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -73,12 +73,16 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "rpm"
       ],
       "category": "Office",
       "maintainer": "Made Mail contributors <drakeg@users.noreply.github.com>",
       "executableName": "mademail",
       "icon": "apps/desktop/icons/icon.png"
+    },
+    "rpm": {
+      "artifactName": "Made-Mail-${version}-linux-${arch}.rpm"
     }
   },
   "dependencies": {

@@ -19,7 +19,7 @@ Backend: encrypted credentials, tenant isolation tests, idempotent job tests, ba
 Not available yet. Before enabling delivery, record hosting target, operator owner, artifact/version identifiers, environment variables, health checks, migration sequence, promotion approval, and rollback commands in an operator runbook. Roll back to a known artifact only after checking schema compatibility. Pause workers before investigating repeated destructive actions. Do not claim a deploy succeeded without a reachable smoke test.
 
 ## Desktop prototype builds (implemented)
-See `.github/workflows/desktop.yml` and docs/DESKTOP.md. Mac, Windows and Linux runners install exact locked dependencies, run checks/tests and upload unsigned DMG/EXE/DEB/AppImage artifacts. These jobs do not publish releases. Signing, notarization and native install/upgrade smoke tests remain release gates.
+See `.github/workflows/desktop.yml` and docs/DESKTOP.md. Mac, Windows and Linux runners install exact locked dependencies, run checks/tests and upload unsigned DMG/EXE/DEB/RPM/AppImage artifacts. These jobs do not publish releases. Signing, notarization and native install/upgrade smoke tests remain release gates.
 
 ## Alpha draft release pipeline
 The desktop workflow now builds and smoke-tests Mac arm64, Mac x64, Windows x64 and Linux x64 separately. Feature branch pushes and PRs produce Actions artifacts only. A `v*-alpha.*` tag builds those same targets; after all pass, a separate job with contents:write downloads only this run's installers, verifies the tag matches package.json, requires all five expected installer filenames, writes SHA256SUMS.txt, and creates a draft prerelease via the runner's built-in gh CLI. It never publishes automatically and does not receive signing secrets. Existing drafts are not overwritten on reruns; inspect the existing release before deciding how to retry.
@@ -44,3 +44,7 @@ After the exact source commit passes Desktop installers, pushing that commit to 
 ## 0.2.0 workflow milestone
 
 The platform-scoped asset validator accepts matching numeric versions as well as alpha/beta prereleases. The requested milestone publisher still emits a GitHub prerelease, downloads only installer artifacts from a successful four-platform push run for the exact SHA, and excludes untrusted Mac binaries. New packaged smoke coverage checks saved-rule editing/preview/apply and saved folder mappings with synthetic services. Tests do not submit live mail.
+
+## 0.2.2 RPM and signed Mac distribution
+
+Linux builds install the RPM build tools and produce AppImage, DEB and RPM; all three are required by the release collector and hashed. See INSTALLERS.md for distro commands. The preview publisher includes an optional protected `signed-mac` matrix for Intel and Apple Silicon. Set repository variable `MAC_RELEASE_ENABLED=true` only after configuring the `desktop-release` environment and secrets documented in docs/MAC_SIGNING.md. It rebuilds the exact already-tested commit, requires signing/notarization and app/DMG verification, and smoke-tests the signed bundle. Both signed DMGs are downloaded from that same publishing run. Any enabled signing failure blocks publication; when disabled, only Windows/Linux are published. Unsigned development Mac artifacts cannot enter this path. Live signing and clean downloaded-install acceptance remain pending.

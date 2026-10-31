@@ -122,3 +122,7 @@ Mailbox → Folder Settings persists explicit role mappings. Account vault forma
 ## 0.2.1 overlap regression and installer correction (2026-10-30)
 
 Reproduced the reported “another account operation” popup with a failing concurrent-request regression. The main-process busy rejection is replaced by bounded queues with body-read priority and rechecked renderer authorization. Read/flag state reconciliation prevents an in-flight refresh from overwriting a confirmed update; cached body identity is scoped to the message/account/server. Mac source installation now stages the new app and replaces the old app without retaining a backup. Temporary installer fixtures verify replacement, stale-helper removal, staging cleanup and preservation of the existing app when staging fails. Local regression checks use synthetic messages/clients, not private mail. Installed-copy inspection found alpha.5, so users need the updated application to get the live 0.2 mailbox controls.
+
+## 0.2.2 installer coverage (2026-10-30)
+
+X00 extends Linux packaging to RPM, alongside DEB/AppImage. X03 now has a protected, opt-in signed/notarized Intel/Apple Silicon workflow with app and DMG verification, exact-source build selection, and strict release collection. Apple Developer signing credentials are still required; this is configured code, not evidence of a trusted Mac download. RPM native distro install/upgrade acceptance remains open.

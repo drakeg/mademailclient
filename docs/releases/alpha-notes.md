@@ -1,19 +1,14 @@
-# Made Mail 0.2.1 — account-operation and Read-state fixes
+# Made Mail 0.2.2 — installer coverage
 
-## Fixed
-- Opening mail during refresh/account work no longer produces “another account operation is in progress.” Main-process bounded queues accept overlapping reads, prioritize pending body reads and serialize account changes.
-- A confirmed Read/Flag change is retained when an older refresh response arrives. Loaded message text survives metadata refreshes for the same message; changed account identity/server settings invalidate cached text.
-- Queued operations recheck the requesting window before execution. Closed or unauthorized windows cannot execute waiting requests.
-- Moved/deleted messages now produce an appropriate refresh message instead of being mistaken for oversized messages.
-- Mac source installs replace the application without keeping previous-version backup copies. The new bundle is staged first; a failed staging copy leaves the existing app untouched. Accounts/rules/preferences are retained in the existing profile.
+## Added
+- Linux x64 RPM installer alongside DEB, AppImage and Windows EXE. Install on Fedora with `sudo dnf install ./Made-Mail-0.2.2-linux-x64.rpm`. RPM metadata and packaged synthetic launch are checked in CI; native distro installation acceptance remains pending.
+- Protected Apple Silicon and Intel Mac signing/notarization release jobs. Trusted DMGs are included only when the maintainer enables signing and both jobs pass. Without Developer ID/notarization credentials, no Mac installer is published. See docs/MAC_SIGNING.md for setup.
 
-## Included from 0.2.0
-Connected read, compose/reply/forward, Delete-to-Trash, Move, Archive, Junk/Not Junk, read/unread and flags; saved account settings and folder mappings; saved ordered rules with exceptions, enable/disable, preview/apply and new-inbox processing while the app is open. Alpha.5 does not contain these live mailbox controls: verify About Made Mail reports 0.2.1 after updating.
+## Included mail features
+All 0.2.1 account-operation/Read-state fixes, live mailbox actions, sending, saved accounts and rules remain included. See docs/MAIL_WORKFLOWS.md for capabilities and limits. Accounts and profile paths are unchanged.
 
-## Install / update
-Windows x64 EXE and Linux DEB/AppImage downloads plus SHA256SUMS.txt are attached. Installers are unsigned previews; keep OS protections and the Electron sandbox enabled. On Debian/Ubuntu: `sudo apt install ./Made-Mail-0.2.1-linux-amd64.deb`.
+## Installation
+Use attached installers and SHA256SUMS.txt. Source ZIP/TAR files are not installers. On Mac, until trusted DMGs are available, quit Made Mail, run `git pull` then `pnpm desktop:install:mac` in your checkout. This replaces /Applications/Made Mail.app without retaining backup copies. Keep OS protections and Electron's sandbox enabled.
 
-Mac source install: quit Made Mail, pull this version in your checkout, then run `pnpm desktop:install:mac`. Requires Node 22+ and pnpm 11.25.0. The app is installed into /Applications. No trusted downloadable Mac binary is included pending Developer ID signing/notarization. Source archives are not built apps.
-
-## Validation / limits
-Regression tests reproduce the overlap and stale-read-state failures with synthetic clients/messages; packaged checks also exercise the overlap inside the installed main process. This does not claim live-provider acceptance. See docs/MAIL_WORKFLOWS.md for account permissions, rule execution and retention limits. Attachments, server drafts, permanent purge and automatic replies remain unfinished. No failed or unknown mail mutation is automatically retried by this patch.
+## Limits
+Preview status remains: live-provider and clean-machine install acceptance are pending. OAuth registrations, attachments, server drafts, permanent purge and automatic responses remain unfinished.

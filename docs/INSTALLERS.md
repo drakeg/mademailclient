@@ -27,13 +27,22 @@ Copy `dist/mac-arm64/Made Mail.app` (Apple Silicon) or `dist/mac/Made Mail.app` 
 
 From the **Desktop installers** Actions run for the desired commit, download `installer-win-x64`, unzip it and run `Made-Mail-<version>-win-x64.exe`. This is an NSIS installer with directory selection and shortcuts, not a portable web page. Remove it through Windows Settings → Apps. Windows ARM is not covered. The preview is unsigned; publisher trust and clean-machine installation acceptance remain pending. Do not disable OS protections to run a blocked artifact.
 
-## Linux: Debian package or AppImage (x64)
+## Linux: Debian, RPM package or AppImage (x64)
 
 The workflow produces `installer-linux-x64`. On Debian/Ubuntu, unzip the artifact and install the local package:
 
 ```sh
 sudo apt install ./Made-Mail-<version>-linux-amd64.deb
 ```
+
+On Fedora and compatible RPM distributions, use the RPM download:
+
+```sh
+sudo dnf install ./Made-Mail-<version>-linux-x64.rpm
+# Remove with: sudo dnf remove mademailclient
+```
+
+On openSUSE use `sudo zypper install ./Made-Mail-<version>-linux-x64.rpm`. Distro compatibility and native install/upgrade acceptance remain to be tested; package metadata and the unpacked app are checked in CI.
 
 Launch Made Mail from the application menu. Remove with `sudo apt remove mademailclient`. Your account data is retained. Other distributions can try the AppImage:
 
@@ -48,10 +57,10 @@ AppImages may require distribution-specific FUSE support. Keep Electron's sandbo
 
 Actions: https://github.com/drakeg/mademailclient/actions/workflows/desktop.yml . Select a successful run for the latest topic-branch commit, then its installer artifacts (GitHub sign-in may be required). Artifacts expire; they are not permanent Releases downloads. A failed job is not an accepted installer. Source ZIP/TAR downloads from GitHub are not built apps.
 
-Matching alpha tags collect all five installers into a draft prerelease with SHA256SUMS.txt only after packaged smoke and Mac trust gates pass. No new public release is promised until those gates and native install acceptance pass. Mac downloadable DMG distribution remains blocked on signing/notarization; switching to PKG would not solve that trust requirement. See MAC_SIGNING.md and TESTING.md.
+Matching alpha tags collect all six installers into a draft prerelease with SHA256SUMS.txt only after packaged smoke and Mac trust gates pass. No new public release is promised until those gates and native install acceptance pass. Mac downloadable DMG distribution remains blocked on signing/notarization; switching to PKG would not solve that trust requirement. See MAC_SIGNING.md and TESTING.md.
 
 Build target references: https://www.electron.build/v26/docs/targets/ and https://www.electron.build/v26/docs/linux/ .
 
 ## Recorded build validation (2026-10-27)
 
-Commit a4f32dd: all 57 tests passed locally; syntax and shell syntax checks passed. GitHub run https://github.com/drakeg/mademailclient/actions/runs/40449245649 built all four platforms and passed each packaged synthetic launch smoke test. Windows EXE, Linux DEB/AppImage and both Mac DMGs were uploaded. The local Mac bundle built, but its direct sandboxed-tool smoke launch aborted; GitHub Mac launches succeeded. Neither result establishes downloaded Mac trust or native installer/upgrade/uninstall acceptance. The install script's copy/backup phase has not been executed on the Applications folder by this agent.
+Commit a4f32dd: all 57 tests passed locally; syntax and shell syntax checks passed. GitHub run https://github.com/drakeg/mademailclient/actions/runs/40449245649 built all four platforms and passed each packaged synthetic launch smoke test. Windows EXE, Linux DEB/RPM/AppImage and both Mac DMGs were uploaded. The local Mac bundle built, but its direct sandboxed-tool smoke launch aborted; GitHub Mac launches succeeded. Neither result establishes downloaded Mac trust or native installer/upgrade/uninstall acceptance. The install script's copy/backup phase has not been executed on the Applications folder by this agent.
