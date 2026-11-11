@@ -81,12 +81,16 @@ function attachSmokeTest(app,window,Menu) {
    await run(`
     const {createComposer}=await import('/apps/web/composer.mjs');
     let saved,submissions=0;
-    const compose=createComposer({el:id=>document.getElementById(id),text:(tag,value,parent)=>{const n=document.createElement(tag);n.textContent=value;parent.append(n);return n;},getAccounts:()=>[{id:'fixture',email:'sender@example.com',smtp:{host:'smtp.example.com'}}],notice:message=>{throw new Error(message);},outgoing:{save:async value=>{saved=value;return {ok:true,data:{id:'fixture'}};},send:async()=>{submissions++;return {ok:true,data:{status:'accepted',copy:'saved'}};}}});
+    const compose=createComposer({el:id=>document.getElementById(id),text:(tag,value,parent)=>{const n=document.createElement(tag);n.textContent=value;parent.append(n);return n;},getAccounts:()=>[{id:'fixture',email:'sender@example.com',smtp:{host:'smtp.example.com'}}],notice:message=>{throw new Error(message);},outgoing:{chooseAttachments:async()=>({ok:true,data:{id:'fixture',attachments:[{id:'file',filename:'notes.txt',size:5}],pendingForward:false}}),removeAttachment:async()=>({ok:true,data:{id:'fixture',attachments:[],pendingForward:false}}),forwardAttachments:async()=>({ok:false,error:'Synthetic offline original'}),clearForwardPending:async()=>({ok:true,data:{id:'fixture',attachments:[],pendingForward:false}}),save:async value=>{saved=value;return {ok:true,data:{id:'fixture'}};},send:async()=>{submissions++;return {ok:true,data:{status:'accepted',copy:'saved'}};}}});
     compose.open();assert(document.querySelector('#composer').open,'Composer opens');
     const cf=document.querySelector('#compose-form');cf.elements.to.value='friend@example.com';cf.elements.subject.value='Synthetic smoke';cf.elements.text.value='Fictional text only';
     document.querySelector('#compose-save').click();await wait(()=>document.querySelector('#compose-status').textContent.includes('Draft saved'));assert(saved.accountId==='fixture'&&saved.text==='Fictional text only','Draft preserves selected account and text');
+    document.querySelector('#compose-attach').click();await wait(()=>document.querySelector('#compose-attachments').textContent.includes('notes.txt'));assert(document.querySelector('#compose-attachments button').getAttribute('aria-label')==='Remove notes.txt','Selected attachment listed');
+    document.querySelector('#compose-attachments button').click();await wait(()=>!document.querySelector('#compose-attachments button'));
+    document.querySelector('#compose-attach').click();await wait(()=>document.querySelector('#compose-attachments').textContent.includes('notes.txt'));
     cf.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));await wait(()=>document.querySelector('#compose-status').textContent.includes('SMTP server accepted'));
     assert(submissions===1&&document.querySelector('#compose-send').disabled,'Accepted submission is locked');document.querySelector('#compose-close').click();
+    await compose.open('forward',{accountId:'fixture',email:'source@example.com',subject:'Forward fixture',body:'Fictional body',time:'Today',from:'Source',path:'INBOX',uid:1,validity:'1',attachments:[{index:0,digest:'a'.repeat(64)}]});assert(document.querySelector('#compose-send').disabled&&!document.querySelector('#compose-forward-text').hidden,'Failed original import blocks sending');document.querySelector('#compose-forward-text').click();await wait(()=>!document.querySelector('#compose-send').disabled);assert(document.querySelector('#compose-forward-text').hidden,'Text-only forwarding requires explicit choice');document.querySelector('#compose-close').click();
    `);
    await run(`
     const {createRuleEditor}=await import('/apps/web/rule-editor.mjs');let savedRules=[],applied=0;
@@ -111,7 +115,7 @@ function attachSmokeTest(app,window,Menu) {
     host.querySelector('button').click();await wait(()=>status?.startsWith('Saved '));assert(saves===1&&savedInput.uid===1&&savedInput.digest==='a'.repeat(64)&&!('filePath' in savedInput),'Save sends message identity, never a file path');
     fixture.attachments[0].canSave=false;repaint();assert(host.querySelector('button').disabled,'Oversized attachment saving disabled');host.remove();
    `);
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:48}));
+   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:52}));
    clearTimeout(timeout);app.exit(0);
   }catch(error){fail(error.message);}
  });

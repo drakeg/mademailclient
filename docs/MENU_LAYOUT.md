@@ -21,3 +21,7 @@ Connected accounts remain read-only in this increment. Reply/Reply All/Forward a
 Acceptance: native menus open Accounts and Rules; no sidebar command buttons or ribbon remain; Message-menu state matches the reading pane; selection changes update Junk/Not Junk and flag/read labels; returning a junk message preserves its account; no-selection/read-only actions stay disabled; source and packaged smoke tests cover these paths. Use the user's supplied Outlook/Mail references for familiar density and three-pane hierarchy, with Made Mail's own assets.
 
 The [Apple Mail REA inspection](research/APPLE_MAIL_REA.md) supplies shipped-resource evidence for native menus, settings concepts, message-command labels and layout resources. It does not establish exact runtime menu order or supersede the user’s preference for Outlook-style rules.
+
+## 0.4.0 compose attachments
+
+Attach Files, attachment removal, Retry original attachments and explicit Forward text only belong in the compose dialog. File → Local Drafts and Sending Status reopens attachment-bearing drafts. No utility items are added to the folder sidebar.

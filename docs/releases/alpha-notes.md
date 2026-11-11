@@ -1,14 +1,22 @@
-# Made Mail 0.3.0 — received attachments
+# Made Mail 0.4.0 — Mac downloads and sending attachments
 
-## Added
-- Save received attachments from the reading pane with a native **Save As…** dialog. Filenames, decoded sizes and media types appear below the message. Saving never automatically opens a file.
-- Received message downloads support up to 25 MiB, replacing the live reader's previous 2 MiB text-preview path. Individual saved attachments are limited to 20 MiB, with at most 100 per message. Text and attachment metadata survive folder refresh.
+## Install from Releases
+All six installers are attached with SHA256SUMS.txt. No Git, Node or pnpm is needed.
 
-## Save behavior
-Choose a new filename when one already exists: existing files and symlinks are refused, including after the OS dialog offers replacement. Saves refetch and verify the message/attachment; stale or incomplete sources fail clearly. See docs/ATTACHMENTS.md. Forwarding includes text only; sending attachments is not implemented yet.
+- **Mac Apple Silicon:** Made-Mail-0.4.0-mac-arm64.dmg
+- **Mac Intel:** Made-Mail-0.4.0-mac-x64.dmg
+- **Windows x64:** Made-Mail-0.4.0-win-x64.exe
+- **Linux x64:** DEB, RPM and AppImage
 
-## Installation
-Windows EXE and Linux RPM/DEB/AppImage downloads plus SHA256SUMS.txt are attached after the exact-commit platform build succeeds. For Fedora: `sudo dnf install ./Made-Mail-0.3.0-linux-x86_64.rpm`. Mac signed DMGs remain unavailable pending Apple Developer credentials; quit the app, `git pull` and run `pnpm desktop:install:mac` to update /Applications/Made Mail.app locally. No backup copies are retained. Account/rule/draft profile paths are unchanged.
+On Mac, quit Made Mail, open the DMG, drag Made Mail.app to Applications and choose Replace to update. Eject the disk image and launch from Applications. App profile paths remain unchanged; no previous-version app backups are created.
 
-## Validation and limits
-Synthetic MIME, filesystem, authorization and renderer checks cover the new path; native dialog and real-provider acceptance remain pending. No private mail was used. Existing SMTP, mailbox actions, saved rules and Read-state fixes remain included. Outgoing attachments, server drafts, offline caching, permanent purge, automatic responses and OAuth publisher registrations remain unfinished. Keep OS protections and Electron's sandbox enabled.
+**Mac signing notice:** these downloads have ad-hoc integrity signatures. They are **not Developer ID signed and not notarized by Apple**. macOS may require its normal per-app approval or block launch according to policy. See [Apple's app-opening guidance](https://support.apple.com/en-us/102445). The installer does not remove quarantine or change security settings. Windows installers also lack a trusted publisher signature.
+
+## Sending attachments
+- Attach Files in new messages, replies and forwards uses the native file picker. Review filenames and remove individual files before sending.
+- Drafts retain encrypted copies of selected bytes, so reopening a draft keeps its attachments even if the original file changes or disappears.
+- Forward imports the original attachments and verifies their identity/digests. Failed imports block Send across saves/restarts until you Retry or explicitly choose Forward text only.
+- Up to 10 files and 10 MiB total per outgoing message; 40 MiB total attachment storage across local drafts/submission records. Provider limits may be smaller. Removing old local records frees retained attachment storage.
+- Existing duplicate-send protection and durable accepted/unknown submission status also cover attachment mail. No automatic resubmission is added.
+
+See docs/ATTACHMENTS.md and docs/INSTALLERS.md for limits and installation details. Synthetic MIME/filesystem/renderer and packaged-app checks cover implementation; real-provider, native dialog and clean downloaded-install acceptance remain pending. No personal mail was used or sent by the agent. Server drafts, offline caching, permanent purge, automatic responses and OAuth publisher registrations remain open.

@@ -1,22 +1,16 @@
-# Mac distribution blocker and resolution
+# Mac release signatures
 
-The alpha.1 Mac download can be rejected as damaged. Its build explicitly disabled signing; an earlier local bundle fails strict signature verification. The build-runner launch smoke test does not reproduce the security checks applied to an app downloaded from the internet.
+## Default direct downloads (0.4.0)
 
-Do not remove quarantine metadata, disable Gatekeeper, or re-sign the installed download as a substitute for a verified release. The distribution fix is a new version signed with a Developer ID Application certificate, submitted for Apple notarization and stapled, then tested through the downloaded DMG path.
+The owner explicitly authorized downloadable Mac previews without Developer ID membership on 2026-11-11. GitHub Releases now includes Apple Silicon and Intel DMGs by default. This supersedes earlier documentation that excluded all Mac binaries pending notarization.
 
-## Prerequisites
-An Apple Developer Program team must own the app's signing identity and notarization credentials. No valid code-signing identities were found in the agent environment. Never paste certificates, private keys, Apple passwords or notarization tokens into chat or commit them to Git.
+The preview config in scripts/electron-builder-mac-preview.cjs forces an ad-hoc identity, disables hardened runtime for compatibility with ad-hoc Electron helpers, and disables notarization. No certificates or signing secrets are used. Electron renderer sandboxing, context isolation, network TLS and OS settings remain enabled/unchanged. CI verifies strict bundle signatures, verifies/mounts the DMG, verifies its contained app and runs packaged synthetic checks. Ad-hoc signatures verify integrity but do not establish a trusted publisher identity. Normal downloaded-install/upgrade acceptance is still pending.
 
-## Implementation sequence
-1. Set up the Developer ID Application certificate and private key in an authorized signing environment. For CI use restricted secrets/environments, with maintainers controlling access; do not expose credentials to PR jobs.
-2. Configure a separate signed build: require code signing (`forceCodeSigning: true`), hardened runtime, version-appropriate Electron JIT entitlements and notarization. Remove the unsigned build override only for that protected job. Use the v26 electron-builder documentation, matching this repository's version.
-3. Sign nested helpers/frameworks and the app, notarize and staple, then build the final DMG. Keep unsigned CI development artifacts separate from distribution artifacts.
-4. Require `codesign --verify --deep --strict`, `xcrun stapler validate`, and `spctl --assess --type execute` to pass on each architecture. Verify the final DMG and its copied app, then test a normal browser download and launch on a clean Mac without changing OS security settings.
-5. Publish a new version with fresh checksums. Do not silently replace alpha.1 downloads or claim the current release is fixed.
+Release notes must say **not Developer ID signed and not notarized by Apple**. macOS may require its normal per-app approval or block the app according to local policy; see [Apple's guidance](https://support.apple.com/en-us/102445). No installer removes quarantine or changes Gatekeeper. Do not patch or re-sign a downloaded app to make it appear verified.
 
-Signing is not implemented or validated yet. The tag workflow now blocks draft releases when Mac trust checks fail.
+## Optional trusted distribution
 
-References: https://www.electron.build/v26/docs/features/code-signing/code-signing-mac/ and https://www.electronjs.org/docs/latest/tutorial/code-signing .
+When the owning team obtains Developer ID and notarization credentials, enable the protected workflow below. A failed enabled signing job blocks publication instead of falling back to the ad-hoc DMGs. Membership is not required for the default preview download path.
 
 ## Implemented protected release path (0.2.2)
 

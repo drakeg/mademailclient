@@ -78,7 +78,7 @@ if(primary)app.whenReady().then(()=>{
   registerAttachments(ipcMain,()=>window,vault,dialog,{resolveAccount:a=>oauthService.prepare(a)});
   registerAccounts(ipcMain,()=>window,vault,{resolveAccount:account=>oauthService.prepare(account),onInbox:(account,page)=>mailRules.processIncoming(account,page)});
   const journal=createVault(join(app.getPath('userData'),'outgoing.enc'),safeStorage);
-  registerOutgoing(ipcMain,()=>window,createOutgoing({vault,journal,resolveAccount:account=>oauthService.prepare(account)}));
+  registerOutgoing(ipcMain,()=>window,createOutgoing({vault,journal,resolveAccount:account=>oauthService.prepare(account)}),{dialog});
   createWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });

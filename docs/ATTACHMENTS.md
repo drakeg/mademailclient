@@ -1,6 +1,6 @@
 # Received attachments (0.3.0)
 
-Open a connected message to load its text and attachment list. Each attachment shows its filename, media type and decoded size. **Save As…** opens the native OS save dialog. Files are saved only when you choose a destination; Made Mail never opens or executes them. Inline MIME images are listed as files, not loaded into the reading pane. Forwarding currently quotes text only and does not carry attachments. Sending attachments is a separate backlog item.
+Open a connected message to load its text and attachment list. Each attachment shows its filename, media type and decoded size. **Save As…** opens the native OS save dialog. Files are saved only when you choose a destination; Made Mail never opens or executes them. Inline MIME images are listed as files, not loaded into the reading pane. Version 0.4.0 also supports outgoing attachments and forwarding, described below.
 
 ## Limits and persistence
 
@@ -23,3 +23,15 @@ Synthetic MIME tests verify exact binary decoding, metadata redaction, size/trun
 The browser fixture replaces the native picker with a temporary destination. Native save dialogs and real-provider download/refresh behavior on each target OS still require acceptance with disposable accounts. These checks do not claim real-provider acceptance. No personal mailbox was opened or altered by the agent.
 
 References: [Electron save dialog](https://www.electronjs.org/docs/latest/api/dialog), [MailParser](https://nodemailer.com/extras/mailparser), [ImapFlow fetch](https://imapflow.com/docs/api/imapflow-client/).
+
+## Sending and forwarding (0.4.0)
+
+Use **Attach Files…** in the compose dialog for new mail, replies and forwards. The native picker selects regular files; the main process reads a bounded snapshot. Review the filenames and use Remove for individual files before sending. Limit: 10 attachments totaling 10 MiB (shown as MB); MIME/base64 overhead increases the transmitted size, and a provider may impose a smaller limit. Folders/special files and files that change while being read are refused. There is no drag/drop, clipboard attachment or attachment editing.
+
+Attachments are copied into the OS-encrypted outgoing.enc journal as base64 bytes with a SHA-256 digest, not references to their original paths. Editing/removing an original file later does not change a saved draft. Reopening a local draft restores its attachments. The renderer receives filename/size/type/ID/digest metadata, never file bytes or original local paths. Composer saves ignore renderer-supplied attachment/path data; only fixed native-picker or validated incoming-message import methods add bytes. Local attachment storage is capped at 40 MiB across drafts and submission records. Remove attachments from editable drafts or remove old local records to free space. Accepted/unknown submission records retain their files until explicitly removed. No server Drafts synchronization is added.
+
+Forward automatically imports the original attachments using the original account/folder/UID/UIDVALIDITY and expected SHA-256 digests. Import intent is saved before retrieval. Failed/stale/oversized imports keep a durable pending marker that blocks Send across saves/restarts. Retry original attachments, or explicitly choose **Forward text only** to remove that requirement. Adding unrelated files cannot clear it. Replies start without original attachments; files can be added through the picker.
+
+Concurrent file imports recheck draft revision and requester authorization before persistence. Submission freezes the persisted draft revision, builds MIME using only stored byte buffers (filesystem/URL access disabled), and retains the existing sending → accepted/unknown state machine. No failed or ambiguous send is retried automatically. The Sent copy uses the exact submitted MIME, including attachments. Bcc is excluded from MIME headers.
+
+Tests cover exact binary MIME content, draft restart, metadata-only IPC, bounds, invalid files, closed/unauthorized requesters, competing draft edits, storage caps, durable failed-forward blocking and explicit text-only resolution. A browser fixture exercises forward/add/save/reopen/send using actual services and MIME generation, with a local capture transport and native-picker stand-in. Real provider and native picker acceptance on each OS remains pending.

@@ -53,7 +53,28 @@ jobs:
       - name: Install RPM packaging tools
         if: matrix.platform == 'linux'
         run: sudo apt-get update && sudo apt-get install -y rpm
-      - name: Package unsigned prototype
+      - name: Package Mac preview with ad-hoc integrity signature
+        if: matrix.platform == 'mac'
+        run: pnpm exec electron-builder --config scripts/electron-builder-mac-preview.cjs --mac --${{ matrix.arch }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # This job has no signing secrets and the config forces identity '-'.
+          CSC_FOR_PULL_REQUEST: 'true'
+      - name: Verify Mac preview bundle integrity
+        if: matrix.platform == 'mac'
+        shell: bash
+        env:
+          APP_EXECUTABLE: ${{ matrix.executable }}
+        run: |
+          app_bundle="${APP_EXECUTABLE%/Contents/MacOS/*}"
+          codesign --verify --deep --strict --verbose=2 "$app_bundle"
+          hdiutil verify dist/*.dmg
+          mount_dir=$(mktemp -d "$RUNNER_TEMP/mademail-preview.XXXXXX")
+          trap 'hdiutil detach "$mount_dir" || true; rmdir "$mount_dir" || true' EXIT
+          hdiutil attach dist/*.dmg -readonly -nobrowse -mountpoint "$mount_dir"
+          codesign --verify --deep --strict --verbose=2 "$mount_dir/Made Mail.app"
+      - name: Package Windows and Linux
+        if: matrix.platform != 'mac'
         run: pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

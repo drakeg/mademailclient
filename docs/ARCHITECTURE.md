@@ -36,3 +36,7 @@ mail-actions.cjs is the authorized writable IMAP boundary, with same-account des
 ## Received MIME attachments
 
 incoming.cjs parses a bounded source behind the existing read-only TLS account boundary. accounts:content returns text and metadata; attachments:save refetches/verifies the attachment and writes only to a native-dialog destination through exclusive creation. No decoded bytes or general filesystem access reach the renderer. This supersedes the earlier text-preview-only receive path. See ATTACHMENTS.md.
+
+## Outgoing attachment snapshots (0.4.0)
+
+outgoing-files.cjs bounds native-selected regular files and encodes immutable byte snapshots for the existing encrypted journal. outgoing.cjs owns attachment revisions, quota checks, verified forward imports and pending-forward submission gates. The renderer gets only metadata. The SMTP MIME builder uses stored buffers with file/URL access disabled; accepted/unknown retry semantics are unchanged. See ATTACHMENTS.md.

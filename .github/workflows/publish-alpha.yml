@@ -111,12 +111,18 @@ jobs:
         with:
           node-version: 22
       - name: Require a successful four-platform installer run for this exact commit
+        env:
+          SIGNED_MAC_RESULT: ${{ needs.signed-mac.result }}
         shell: bash
         run: |
           candidate_run=$(gh run list --workflow desktop.yml --commit "$GITHUB_SHA" --event push --status success --json databaseId --jq '.[0].databaseId')
           test -n "$candidate_run" && test "$candidate_run" != null
           gh run download "$candidate_run" --name installer-win-x64 --dir release-assets
           gh run download "$candidate_run" --name installer-linux-x64 --dir release-assets
+          if [ "$SIGNED_MAC_RESULT" != success ]; then
+            gh run download "$candidate_run" --name installer-mac-arm64 --dir release-assets
+            gh run download "$candidate_run" --name installer-mac-x64 --dir release-assets
+          fi
       - uses: actions/download-artifact@v4
         if: needs.signed-mac.result == 'success'
         with:
@@ -129,8 +135,7 @@ jobs:
         shell: bash
         run: |
           export RELEASE_TAG="v$(node -p 'require("./package.json").version')"
-          export RELEASE_PLATFORMS=windows-linux
-          if [ "$SIGNED_MAC_RESULT" = success ]; then export RELEASE_PLATFORMS=all; fi
+          export RELEASE_PLATFORMS=all
           node scripts/release-assets.mjs
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
       - name: Tag tested source and publish explicitly requested experimental downloads
