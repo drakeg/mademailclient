@@ -52,3 +52,11 @@ Linux builds install the RPM build tools and produce AppImage, DEB and RPM; all 
 ## 0.4.0 current Mac publication policy
 
 At the owner's explicit request, normal milestone releases collect all six installers. Mac matrix jobs use the separate ad-hoc preview config, check codesign integrity, verify and mount the DMG, inspect its app, and run packaged smoke. The protected Developer ID/notarization job remains opt-in; successful signed DMGs replace preview DMGs in that same release. Enabling signing and then failing blocks publication. There is no silent fallback in that case. The all-platform checksum collector is mandatory. Earlier Windows/Linux-only descriptions above are historical and superseded for 0.4.0 onward. Release notes explicitly disclose the absence of Developer ID/notarization. No installer changes OS trust settings.
+
+## Dependency update cooldown
+
+pnpm installation and Renovate both require releases to be at least 24 hours old. `pnpm-workspace.yaml` sets `minimumReleaseAge: 1440`; `renovate.json` applies `minimumReleaseAge: "1 day"`, required release timestamps and strict filtering to npm updates. Existing narrowly pinned exceptions are unchanged. Do not add an exception just to make a bot PR pass. If a newer version is still cooling down, use the latest eligible release or wait for its timestamp, then rerun the checks.
+
+PR #6 originally selected Electron 45.3.1 less than three hours after publication, so frozen installs correctly failed the age check before tests/builds. The PR now uses Electron 45.3.0, the latest eligible version at investigation time, with a regenerated lockfile. Later versions remain eligible for normal Renovate updates once their cooldown passes. No release or merge is part of this CI fix.
+
+Reference: https://docs.renovatebot.com/configuration-options/#minimumreleaseage .
