@@ -149,3 +149,7 @@ Own Made Mail code; no Mailcraft source used. Native Mailbox and folder context 
 ## Native Rust migration — owner priority
 
 The owner authorized removing Electron/webviews from the future desktop runtime. See `tasks/plan.md`, `tasks/todo.md`, `docs/RUST_DESKTOP.md` and ADR 0004. N01 starts an original, offline Rust model and desktop toolkit evaluation; N02 validates OS polish/accessibility before committing to that toolkit. N03–N07 then migrate account setup, mail operations, drafts/attachments, rules/purge, profiles and installers. Existing releases remain available until replacement acceptance. No Mailcraft code or assets may be incorporated. Native Rust does not imply OS-native widgets: the candidate uses custom-drawn panes with OS-native Mac/Windows menus; this distinction is part of the acceptance gate.
+
+### N02a — Rust keyboard and text-selection behavior
+
+Adds message-list Up/Down/Home/End within the current Inbox, F6/Shift+F6 pane navigation, account-specific accessible Inbox names, read-only text selection and native Edit Copy/Select All routing. Manual Mac sample testing and pure navigation contracts validate this slice; full screen-reader/IME, Windows/Linux runtime and composing acceptance remain N02 work. No provider functionality or real profile access is introduced.
