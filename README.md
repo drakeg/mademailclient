@@ -43,3 +43,7 @@ See [desktop testing](docs/TESTING.md) and [alpha acceptance status](docs/releas
 ## Mail workspace
 
 Desktop commands use native OS menus. Add Account and Accounts/Settings live in the application/File menu; Rules lives in Mailbox. The left pane contains only mailbox/folder navigation. Selected-message commands live in the right reading pane and Message menu, with contextual Junk/Not Junk. See [menu and layout contract](docs/MENU_LAYOUT.md) for current capabilities and limitations.
+
+## Rust desktop migration
+
+An original [Rust desktop evaluation](docs/RUST_DESKTOP.md) is under development to remove Electron and webviews from the future desktop runtime. It currently opens fictional mail only; account setup and provider operations are not connected. The [migration plan](tasks/plan.md) preserves existing behavior and profiles before any cutover. Current release installers remain the existing application until the replacement passes acceptance. No Mailcraft code or assets are used.

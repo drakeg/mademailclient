@@ -1,0 +1,19 @@
+[package]
+name = "made-mail-native"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+made-mail-core = { path = "../../crates/mail-core" }
+eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "default_fonts", "glow", "wayland", "x11"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+muda = { version = "=0.21.2", default-features = false }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+raw-window-handle = "=0.6.2"
+
+[lints]
+workspace = true
