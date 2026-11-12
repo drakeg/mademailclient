@@ -1,3 +1,5 @@
+# Keep package installation and Renovate on the same 24-hour cooldown.
+minimumReleaseAge: 1440
 allowBuilds:
   electron: true
   electron-winstaller: true
