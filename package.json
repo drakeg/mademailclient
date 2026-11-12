@@ -87,7 +87,7 @@
   },
   "dependencies": {
     "imapflow": "2.11.0",
-    "mailparser": "3.12.4",
+    "mailparser": "3.14.3",
     "nodemailer": "10.2.1"
   },
   "packageManager": "pnpm@11.28.11"
