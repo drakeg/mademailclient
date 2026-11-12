@@ -23,6 +23,11 @@ function attachSmokeTest(app,window,Menu) {
    await engine.save({name:'Packaged rule',accountId:'fixture-main',enabled:true,stopProcessing:true,match:'all',conditions:[{field:'subject',operator:'contains',value:'invoice'}],exceptions:[],actions:[{type:'trash'}]});
    const planned=await engine.preview('fixture-main');if(planned.matches.length!==1)throw new Error('Packaged rule planner unavailable');
    const executed=await engine.run(planned.token);if(executed.done!==1||moved!==1)throw new Error('Packaged rule adapter unavailable');
+   const {createMailboxEmpty}=require('./mailbox-empty.cjs');
+   const purgeCommands=[];
+   const purge=createMailboxEmpty({vault:fixtureVault,journal:memory(),settings:memory(),connect:async(_a,run)=>run({capabilities:new Set(['UIDPLUS']),mailbox:{uidValidity:'1'},list:async()=>[{path:'Trash',specialUse:'\\Trash'}],getMailboxLock:async()=>({release(){}}),search:async()=>[2,4],messageFlagsAdd:async()=>true,exec:async(command,args)=>{purgeCommands.push([command,args]);return {response:{command:'OK'},next(){}};}})});
+   const purgePreview=await purge.preview({accountId:'fixture-main',role:'trash'});
+   if((await purge.execute(purgePreview.token)).status!=='done'||purgeCommands[0][0]!=='UID EXPUNGE'||purgeCommands[0][1][0].value!=='2,4')throw Error('Packaged targeted empty failed');
    const {registerAccounts}=require('./accounts.cjs');const accountHandlers={};let releaseRead,enteredRead;
    const blockedRead=new Promise(resolve=>releaseRead=resolve),readStarted=new Promise(resolve=>enteredRead=resolve);let listCalls=0;
    registerAccounts({handle:(name,handler)=>accountHandlers[name]=handler},()=>window,{list:async()=>{if(++listCalls===1){enteredRead();await blockedRead;}return [{id:'overlap-fixture',email:'owner@example.com'}];}},{readBody:async()=> 'Synthetic overlapping body'});
