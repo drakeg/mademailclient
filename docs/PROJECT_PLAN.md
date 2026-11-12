@@ -153,3 +153,7 @@ The owner authorized removing Electron/webviews from the future desktop runtime.
 ### N02a — Rust keyboard and text-selection behavior
 
 Adds message-list Up/Down/Home/End within the current Inbox, F6/Shift+F6 pane navigation, account-specific accessible Inbox names, read-only text selection and native Edit Copy/Select All routing. Manual Mac sample testing and pure navigation contracts validate this slice; full screen-reader/IME, Windows/Linux runtime and composing acceptance remain N02 work. No provider functionality or real profile access is introduced.
+
+### N03a — separate Rust account settings and OS credential entries
+
+Under review: native-menu Accounts form with IMAP/SMTP, TLS/STARTTLS, validation, masked secrets, explicit unverified status and removal confirmation. Explicit per-platform credential backends and bounded entries/index, discoverable partial writes and cross-process operation lock; no plaintext fallback, provider connections or Electron import. Synthetic GUI/storage tests and a unique disposable Mac Keychain roundtrip validate this slice. Windows/Linux native credential restart acceptance, discovery/OAuth, verification and live mail remain open. N02 toolkit acceptance is not declared complete by this parallel storage work.

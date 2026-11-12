@@ -1,10 +1,12 @@
-//! Offline toolkit evaluation. Never opens the Electron profile or connects to a provider.
+mod account_dialog;
+// Rust desktop evaluation. Never opens the Electron profile or connects to a provider.
 mod menus;
 use eframe::egui;
 use made_mail_core::{Mailbox, MessageKey, Scope};
 
 struct MadeMail {
     mailbox: Mailbox,
+    accounts: account_dialog::AccountDialog,
     scope: Scope,
     selected: Option<MessageKey>,
     status: String,
@@ -20,6 +22,9 @@ impl MadeMail {
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         Ok(Self {
             mailbox: Mailbox::sample(),
+            accounts: account_dialog::AccountDialog::new(
+                std::env::args().any(|arg| arg == "--account-fixture"),
+            ),
             scope: Scope::AllInboxes,
             selected: None,
             status: "Rust desktop evaluation · fictional mail · no connected accounts".into(),
@@ -110,15 +115,38 @@ impl eframe::App for MadeMail {
         let ctx = ui.ctx().clone();
         while let Some(command) = menus::next_command() {
             match command.as_str() {
-                "all-inboxes" => { self.scope = Scope::AllInboxes; self.selected = None; },
+                "all-inboxes" => {
+                    self.scope = Scope::AllInboxes;
+                    self.selected = None;
+                }
                 "copy" => ctx.input_mut(|input| input.events.push(egui::Event::Copy)),
-                "select-all" => ctx.input_mut(|input| input.events.push(egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers { command: true, mac_cmd: cfg!(target_os="macos"), ctrl: cfg!(not(target_os="macos")), ..Default::default() } })),
-                "accounts" => self.status = "Account setup is the next migration stage. This evaluation never opens your saved profile.".into(),
-                "about" => self.status = "Made Mail · original Rust desktop evaluation · no Electron or webview".into(),
-                _ => {},
+                "select-all" => ctx.input_mut(|input| {
+                    input.events.push(egui::Event::Key {
+                        key: egui::Key::A,
+                        physical_key: None,
+                        pressed: true,
+                        repeat: false,
+                        modifiers: egui::Modifiers {
+                            command: true,
+                            mac_cmd: cfg!(target_os = "macos"),
+                            ctrl: cfg!(not(target_os = "macos")),
+                            ..Default::default()
+                        },
+                    })
+                }),
+                "accounts" => self.accounts.open(&ctx),
+                "about" => {
+                    self.status =
+                        "Made Mail · original Rust desktop evaluation · no Electron or webview"
+                            .into()
+                }
+                _ => {}
             }
         }
-        self.keyboard(&ctx);
+        self.accounts.show(&ctx);
+        if !self.accounts.is_open() {
+            self.keyboard(&ctx);
+        }
         self.folders.clear();
         self.rows.clear();
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -126,7 +154,7 @@ impl eframe::App for MadeMail {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Accounts…").clicked() {
-                        self.status = "Account setup is not connected in this evaluation.".into();
+                        self.accounts.open(&ctx);
                     }
                 });
                 ui.menu_button("View", |ui| {
@@ -289,3 +317,5 @@ fn main() -> eframe::Result {
 }
 
 mod navigation;
+
+mod accounts;
