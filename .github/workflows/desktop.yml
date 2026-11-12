@@ -97,7 +97,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app_bundle"
           xcrun stapler validate "$app_bundle"
           spctl --assess --type execute --verbose=4 "$app_bundle"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
@@ -118,7 +118,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: installer-*
           merge-multiple: true

@@ -92,7 +92,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$mount_dir/Made Mail.app"
           xcrun stapler validate "$mount_dir/Made Mail.app"
           spctl --assess --type execute --verbose=4 "$mount_dir/Made Mail.app"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: signed-mac-${{ matrix.arch }}
           path: dist/*.dmg
@@ -123,7 +123,7 @@ jobs:
             gh run download "$candidate_run" --name installer-mac-arm64 --dir release-assets
             gh run download "$candidate_run" --name installer-mac-x64 --dir release-assets
           fi
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: needs.signed-mac.result == 'success'
         with:
           pattern: signed-mac-*
