@@ -17,3 +17,25 @@ raw-window-handle = "=0.6.2"
 
 [lints]
 workspace = true
+
+[dependencies.keyring-core]
+version = "=1.0.1"
+[dependencies.serde]
+version = "=1.0.229"
+features = ["derive"]
+[dependencies.serde_json]
+version = "=1.0.154"
+[dependencies.zeroize]
+version = "=1.9.1"
+[dependencies.uuid]
+version = "=1.29.2"
+features = ["v4"]
+
+[target.'cfg(target_os = "macos")'.dependencies.apple-native-keyring-store]
+version = "=1.0.2"
+features = ["keychain"]
+[target.'cfg(target_os = "windows")'.dependencies.windows-native-keyring-store]
+version = "=1.1.0"
+[target.'cfg(target_os = "linux")'.dependencies.dbus-secret-service-keyring-store]
+version = "=1.0.1"
+features = ["crypto-rust"]

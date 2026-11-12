@@ -64,3 +64,5 @@ Reference: https://docs.renovatebot.com/configuration-options/#minimumreleaseage
 ## Rust desktop evaluation
 
 `rust-desktop.yml` adds separate Mac/Windows/Linux formatting, clippy, tests and release-mode compilation with Rust 1.99.1 and Cargo.lock. Artifacts are named `rust-evaluation-*` and contain an offline sample executable, not a mail-ready installer. The existing desktop publishing workflow remains unchanged. See `docs/RUST_DESKTOP.md` and the N01–N07 migration acceptance plan.
+
+Rust account-storage tests use synthetic stores. The ignored `isolated_mac_keychain_roundtrip` test is opt-in local acceptance and creates/deletes only a unique synthetic service entry; never enable it in normal CI or against real accounts. Linux Rust CI installs `libdbus-1-dev` for the system Secret Service transport; no vendored D-Bus/OpenSSL build is used.

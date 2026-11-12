@@ -40,3 +40,7 @@ incoming.cjs parses a bounded source behind the existing read-only TLS account b
 ## Outgoing attachment snapshots (0.4.0)
 
 outgoing-files.cjs bounds native-selected regular files and encodes immutable byte snapshots for the existing encrypted journal. outgoing.cjs owns attachment revisions, quota checks, verified forward imports and pending-forward submission gates. The renderer gets only metadata. The SMTP MIME builder uses stored buffers with file/URL access disabled; accepted/unknown retry semantics are unchanged. See ATTACHMENTS.md.
+
+## Rust account settings boundary (N03a)
+
+`accounts.rs` validates bounded IMAP/SMTP settings and owns explicit OS credential-store entries/index with recovery for interrupted writes. `account_dialog.rs` exposes only account labels/status, masks new secrets and performs store operations on one background worker with a cross-process operation lock. This is separate from Electron storage and introduces no provider network access. See RUST_ACCOUNT_STORAGE.md for the threat boundary, limits and acceptance evidence.
