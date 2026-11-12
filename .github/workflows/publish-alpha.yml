@@ -38,7 +38,7 @@ jobs:
         run: |
           candidate_run=$(gh run list --workflow desktop.yml --commit "$GITHUB_SHA" --event push --status success --json databaseId --jq '.[0].databaseId')
           test -n "$candidate_run" && test "$candidate_run" != null
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
       - uses: pnpm/action-setup@v4
@@ -107,7 +107,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
       - name: Require a successful four-platform installer run for this exact commit
