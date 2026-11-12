@@ -115,7 +115,13 @@ function attachSmokeTest(app,window,Menu) {
     host.querySelector('button').click();await wait(()=>status?.startsWith('Saved '));assert(saves===1&&savedInput.uid===1&&savedInput.digest==='a'.repeat(64)&&!('filePath' in savedInput),'Save sends message identity, never a file path');
     fixture.attachments[0].canSave=false;repaint();assert(host.querySelector('button').disabled,'Oversized attachment saving disabled');host.remove();
    `);
-   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:52}));
+   await run(`
+    const {messageCommands}=await import('/packages/core/message-actions.mjs');
+    const pending=messageCommands({folder:'inbox'},{canModify:true,busy:true,pendingAction:'trash'}).trash;
+    assert(!pending.enabled&&pending.label==='Deleting…'&&!pending.reason.includes('unavailable'),'Pending Delete reports progress without a false unavailable error');
+    assert(messageCommands({folder:'trash'},{canModify:true}).trash.reason.includes('already in Deleted Items'),'Trash explains why Delete is disabled');
+   `);
+   console.log('DESKTOP_SMOKE_OK',JSON.stringify({platform:process.platform,arch:process.arch,checks:54}));
    clearTimeout(timeout);app.exit(0);
   }catch(error){fail(error.message);}
  });

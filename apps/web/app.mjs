@@ -25,7 +25,7 @@ messages.push(
 );
 const demoMessages=structuredClone(messages);
 messages=[];
-let demo=false, accounts=[], loading=false,actionBusy=false;
+let demo=false, accounts=[], loading=false,actionBusy=false,pendingMessageAction;
 let savedFolderSettings=[];
 const bodyRequests=new Map();
 const confirmedFlags=new Map();
@@ -50,7 +50,7 @@ function roleOf(message){
  const use=foldersByAccount.get(message?.accountId)?.find(f=>f.path===message?.path)?.specialUse;
  return ({'\\Trash':'trash','\\Junk':'junk','\\Archive':'archive'})[use]||message?.folder;
 }
-function canModify(message){const a=accounts.find(a=>a.id===message?.accountId);return !actionBusy&&(demo||!!a&&(a.authType!=='oauth2'||a.provider==='google'));}
+function canModify(message){const a=accounts.find(a=>a.id===message?.accountId);return (demo||!!a&&(a.authType!=='oauth2'||a.provider==='google'));}
 function commandMessage(message){return message?{...message,folder:roleOf(message)}:message;}
 function inView(m,target=view){
  if(target==='work'||target==='personal')return m.accountId===target&&m.folder==='inbox';
@@ -63,10 +63,10 @@ function visibleMessages(){const term=el('search').value.toLowerCase();return me
 function notice(value){el('notice').textContent=value;el('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{el('notice').hidden=true;},4500);}
 function renderReader(visible){
  const m=visible.find(m=>m.id===selectedId);el('reader').replaceChildren();
- const commands=messageCommands(commandMessage(m),{canModify:canModify(m),canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))});
+ const commands=messageCommands(commandMessage(m),{canModify:canModify(m),busy:actionBusy,pendingAction:pendingMessageAction&&pendingMessageAction.id===m?.id?pendingMessageAction.action:undefined,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))});
  document.querySelectorAll('[data-action]').forEach(b=>{const state=commands[b.dataset.action];b.disabled=!state.enabled;b.hidden=!state.visible;b.title=state.reason||state.label;b.setAttribute('aria-label',state.label);const label=b.querySelector('span');if(label)label.textContent=state.label;else b.textContent=state.label;});
- window.desktopMail?.setMessageMenuState({selected:!!m,canModify:canModify(m),canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId)),junk:['junk','spam'].includes(roleOf(m)),unread:!!m?.unread,flagged:!!m?.flagged,trash:roleOf(m)==='trash',archive:roleOf(m)==='archive'});
- el('reader-capabilities').textContent=demo?'Sample message changes reset on reload. Sending is not available yet.':m?(actionBusy?'Saving mailbox change…':canModify(m)?'Changes are saved to the mail server. Delete moves to Trash; use Folder Settings if a destination is missing.':'This authorization is read-only. Reconnect with a supported write grant or app-password account.'):'Select a message to see available actions.';
+ window.desktopMail?.setMessageMenuState({selected:!!m,canModify:canModify(m)&&!actionBusy,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId)),junk:['junk','spam'].includes(roleOf(m)),unread:!!m?.unread,flagged:!!m?.flagged,trash:roleOf(m)==='trash',archive:roleOf(m)==='archive'});
+ el('reader-capabilities').textContent=demo?'Sample message changes reset on reload. Sending is not available yet.':m?(actionBusy?(pendingMessageAction?.action==='trash'?'Moving message to Deleted Items…':'Saving mailbox change…'):canModify(m)?'Changes are saved to the mail server. Delete moves to Trash; use Folder Settings if a destination is missing.':'This authorization is read-only. Reconnect with a supported write grant or app-password account.'):'Select a message to see available actions.';
  el('reader-position').textContent=m?`${visible.indexOf(m)+1} of ${visible.length}`:'';
  if(!m){const empty=text('div','',el('reader'),'empty-state');icon('mail',empty);text('h2','No message selected',empty);text('p','Choose a message to read it here.',empty);return;}
  const label=text('div','',el('reader'),'reader-label');text('i','',label,`account-dot ${m.accountId}`);text('span',`${accountName(m.accountId)} / ${m.folder==='inbox'?'Inbox':foldersByAccount.get(m.accountId)?.find(f=>f.path===m.path)?.name||m.folder}`,label);
@@ -102,10 +102,10 @@ async function performMessageAction(action){
  if(action==='compose'){composer.open();return;}
  if(action==='outgoing'){await composer.showRecords();return;}
  if(['reply','replyAll','forward'].includes(action)&&!demo&&m){await loadSelectedBody();if(!m.loaded){notice('Load message text before replying or forwarding.');return;}composer.open(action,m);return;}
- if(!messageCommands(commandMessage(m),{canModify:canModify(m),canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))})[action]?.enabled)return;
+ if(!messageCommands(commandMessage(m),{canModify:canModify(m),busy:actionBusy,canSend:!demo&&canSendAccount(accounts.find(a=>a.id===m?.accountId))})[action]?.enabled)return;
  if(!demo){
-  actionBusy=true;render();
-  try{const actual=action==='unread'?(m.unread?'markRead':'markUnread'):action==='flag'?(m.flagged?'unflag':'flag'):action;await mailTools.apply(m,actual);if(['archive','trash','junk','notJunk'].includes(action)){messages=messages.filter(item=>item.id!==m.id);confirmedFlags.delete(m.id);}else if(action==='unread')updateFlags(m.id,{unread:!m.unread});else if(action==='flag')updateFlags(m.id,{flagged:!m.flagged});await refreshAccounts();notice('Mailbox change saved to the server.');}catch(e){notice(e.message);}finally{actionBusy=false;render();}return;
+  actionBusy=true;pendingMessageAction={id:m.id,action};render();
+  try{const actual=action==='unread'?(m.unread?'markRead':'markUnread'):action==='flag'?(m.flagged?'unflag':'flag'):action;await mailTools.apply(m,actual);if(['archive','trash','junk','notJunk'].includes(action)){messages=messages.filter(item=>item.id!==m.id);confirmedFlags.delete(m.id);}else if(action==='unread')updateFlags(m.id,{unread:!m.unread});else if(action==='flag')updateFlags(m.id,{flagged:!m.flagged});await refreshAccounts();notice('Mailbox change saved to the server.');}catch(e){notice(e.message);}finally{actionBusy=false;pendingMessageAction=undefined;render();}return;
  }
  messages=messages.map(item=>item.id===m.id?applyDemoMessageAction(item,action):item);
  render();notice(action==='notJunk'?'Sample message moved to Inbox.':action==='junk'?'Sample message moved to Junk.':action==='trash'?'Sample message moved to Deleted Items.':'Sample message updated.');
@@ -202,7 +202,7 @@ async function loadSelectedBody(markRead=false){
   try{const content=await pending;const current=messages.find(item=>item.id===m.id);if(content!==undefined){const patch={body:content.text,attachments:content.attachments,hasAttachment:content.attachments.length>0,loaded:true};if(current)Object.assign(current,patch);Object.assign(m,patch);}else if(current)current.body='Could not load this message. Select it again or refresh the folder.';}
   finally{m.loading=false;const current=messages.find(item=>item.id===m.id);if(current)current.loading=false;bodyRequests.delete(m.id);render();}
  }
- if(markRead&&m.loaded&&m.unread&&messages.some(item=>item.id===m.id)&&canModify(m))try{await mailTools.apply(m,'markRead');updateFlags(m.id,{unread:false});m.unread=false;render();}catch(e){notice(e.message);}
+ if(markRead&&m.loaded&&m.unread&&messages.some(item=>item.id===m.id)&&!actionBusy&&canModify(m))try{await mailTools.apply(m,'markRead');updateFlags(m.id,{unread:false});m.unread=false;render();}catch(e){notice(e.message);}
 }
 async function fetchPage(accountId,path='INBOX',older=false){
  const key=accountId+':'+path,previous=folderPages.get(key);

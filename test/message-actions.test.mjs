@@ -20,3 +20,14 @@ test('Junk/Not Junk moves preserve account and Delete never permanently removes 
  assert.throws(()=>applyDemoMessageAction(original,'notJunk'));
  assert.throws(()=>applyDemoMessageAction(original,'replyAll'));
 });
+test('pending Delete shows progress instead of unavailable and rejects duplicate changes',()=>{
+ const message={id:'one',folder:'inbox'};
+ const commands=messageCommands(message,{canModify:true,busy:true,pendingAction:'trash'});
+ assert.equal(commands.trash.enabled,false);assert.equal(commands.trash.label,'Deleting…');assert.match(commands.trash.reason,/Moving.*Deleted Items/);assert.doesNotMatch(commands.trash.reason,/unavailable/i);assert.equal(commands.junk.enabled,false);
+ assert.equal(messageCommands(message,{canModify:true}).trash.enabled,true,'Delete is restored after completion');
+});
+test('disabled Delete explains Trash and read-only cases specifically',()=>{
+ assert.match(messageCommands({folder:'trash'},{canModify:true}).trash.reason,/already in Deleted Items/i);
+ assert.match(messageCommands({folder:'inbox'},{canModify:false}).trash.reason,/read-only/i);
+ assert.match(messageCommands(null,{canModify:true}).trash.reason,/Select a message/i);
+});
