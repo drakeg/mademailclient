@@ -11,7 +11,13 @@ impl NativeMenus {
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         {
+            use muda::accelerator::{Accelerator, Code, Modifiers};
             use muda::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+            let command = if cfg!(target_os = "macos") {
+                Modifiers::META
+            } else {
+                Modifiers::CONTROL
+            };
             let menu = Menu::new();
             #[cfg(target_os = "macos")]
             {
@@ -37,8 +43,18 @@ impl NativeMenus {
             menu.append(&file)?;
             let edit = Submenu::new("Edit", true);
             edit.append_items(&[
-                &PredefinedMenuItem::copy(None),
-                &PredefinedMenuItem::select_all(None),
+                &MenuItem::with_id(
+                    "copy",
+                    "Copy",
+                    true,
+                    Some(Accelerator::new(command, Code::KeyC)),
+                ),
+                &MenuItem::with_id(
+                    "select-all",
+                    "Select All",
+                    true,
+                    Some(Accelerator::new(command, Code::KeyA)),
+                ),
             ])?;
             menu.append(&edit)?;
             let view = Submenu::new("View", true);

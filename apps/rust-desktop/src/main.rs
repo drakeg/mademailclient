@@ -9,6 +9,10 @@ struct MadeMail {
     selected: Option<MessageKey>,
     status: String,
     _menus: menus::NativeMenus,
+    folders: Vec<egui::Id>,
+    rows: Vec<(egui::Id, MessageKey)>,
+    reader: egui::Id,
+    scroll_to: Option<MessageKey>,
 }
 impl MadeMail {
     fn new(
@@ -20,20 +24,103 @@ impl MadeMail {
             selected: None,
             status: "Rust desktop evaluation · fictional mail · no connected accounts".into(),
             _menus: menus::NativeMenus::install(cc)?,
+            folders: Vec::new(),
+            rows: Vec::new(),
+            reader: egui::Id::unique("reader-text"),
+            scroll_to: None,
         })
+    }
+    fn keyboard(&mut self, ctx: &egui::Context) {
+        let focus = ctx.memory(|memory| memory.focused());
+        let reverse =
+            ctx.input_mut(|input| input.consume_key(egui::Modifiers::SHIFT, egui::Key::F6));
+        let forward =
+            ctx.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::F6));
+        if reverse || forward {
+            let mut panes = vec![];
+            if let Some(id) = self.folders.first() {
+                panes.push(*id);
+            }
+            if let Some((id, _)) = self
+                .rows
+                .iter()
+                .find(|(_, key)| Some(key) == self.selected.as_ref())
+                .or(self.rows.first())
+            {
+                panes.push(*id);
+            }
+            if self.selected.is_some() {
+                panes.push(self.reader);
+            }
+            if !panes.is_empty() {
+                let current = if focus == Some(self.reader) {
+                    panes.len() - 1
+                } else if self.rows.iter().any(|(id, _)| Some(*id) == focus) {
+                    1
+                } else {
+                    0
+                };
+                let next = if reverse {
+                    (current + panes.len() - 1) % panes.len()
+                } else {
+                    (current + 1) % panes.len()
+                };
+                ctx.memory_mut(|memory| memory.request_focus(panes[next]));
+            }
+            return;
+        }
+        let Some((_, current)) = self.rows.iter().find(|(id, _)| Some(*id) == focus) else {
+            return;
+        };
+        let step = ctx.input_mut(|input| {
+            use navigation::Step;
+            [
+                (egui::Key::ArrowUp, Step::Previous),
+                (egui::Key::ArrowDown, Step::Next),
+                (egui::Key::Home, Step::First),
+                (egui::Key::End, Step::Last),
+            ]
+            .into_iter()
+            .find_map(|(key, step)| {
+                input
+                    .consume_key(egui::Modifiers::NONE, key)
+                    .then_some(step)
+            })
+        });
+        if let Some(step) = step {
+            let keys = self
+                .mailbox
+                .visible(&self.scope)
+                .iter()
+                .map(|m| m.key.clone())
+                .collect::<Vec<_>>();
+            if let Some(key) = navigation::destination(&keys, current, step) {
+                if let Some((id, _)) = self.rows.iter().find(|(_, k)| k == &key) {
+                    ctx.memory_mut(|memory| memory.request_focus(*id));
+                }
+                self.scroll_to = Some(key.clone());
+                self.mailbox.open(&key);
+                self.selected = Some(key);
+            }
+        }
     }
 }
 impl eframe::App for MadeMail {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        if let Some(command) = menus::next_command() {
+        while let Some(command) = menus::next_command() {
             match command.as_str() {
                 "all-inboxes" => { self.scope = Scope::AllInboxes; self.selected = None; },
+                "copy" => ctx.input_mut(|input| input.events.push(egui::Event::Copy)),
+                "select-all" => ctx.input_mut(|input| input.events.push(egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers { command: true, mac_cmd: cfg!(target_os="macos"), ctrl: cfg!(not(target_os="macos")), ..Default::default() } })),
                 "accounts" => self.status = "Account setup is the next migration stage. This evaluation never opens your saved profile.".into(),
                 "about" => self.status = "Made Mail · original Rust desktop evaluation · no Electron or webview".into(),
                 _ => {},
             }
         }
+        self.keyboard(&ctx);
+        self.folders.clear();
+        self.rows.clear();
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         egui::Panel::top("menu").show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
@@ -65,10 +152,9 @@ impl eframe::App for MadeMail {
             .resizable(true)
             .show(ui, |ui| {
                 ui.add_space(12.0);
-                if ui
-                    .selectable_label(self.scope == Scope::AllInboxes, "All Inboxes")
-                    .clicked()
-                {
+                let all = ui.selectable_label(self.scope == Scope::AllInboxes, "All Inboxes");
+                self.folders.push(all.id);
+                if all.clicked() {
                     self.scope = Scope::AllInboxes;
                     self.selected = None;
                 }
@@ -76,10 +162,12 @@ impl eframe::App for MadeMail {
                 for account in &self.mailbox.accounts {
                     ui.label(&account.label);
                     let scope = Scope::Inbox(account.id.clone());
-                    if ui
-                        .selectable_label(self.scope == scope, "    Inbox")
-                        .clicked()
-                    {
+                    let inbox = ui.selectable_label(
+                        self.scope == scope,
+                        format!("Inbox — {}", account.label),
+                    );
+                    self.folders.push(inbox.id);
+                    if inbox.clicked() {
                         self.scope = scope;
                         self.selected = None;
                     }
@@ -97,20 +185,51 @@ impl eframe::App for MadeMail {
                     for message in self.mailbox.visible(&self.scope) {
                         let title = format!(
                             "{}{}\n{}",
-                            if message.unread { "● " } else { "" },
+                            if message.unread { "Unread · " } else { "" },
                             message.sender,
                             message.subject
                         );
-                        if ui
-                            .selectable_label(self.selected.as_ref() == Some(&message.key), title)
-                            .clicked()
-                        {
+                        let row = ui
+                            .push_id((&message.key.account, message.key.id), |ui| {
+                                ui.selectable_label(
+                                    self.selected.as_ref() == Some(&message.key),
+                                    title,
+                                )
+                            })
+                            .inner;
+                        self.rows.push((row.id, message.key.clone()));
+                        if row.has_focus() {
+                            ui.memory_mut(|memory| {
+                                memory.set_focus_lock_filter(
+                                    row.id,
+                                    egui::EventFilter {
+                                        vertical_arrows: true,
+                                        ..Default::default()
+                                    },
+                                )
+                            });
+                        }
+                        if self.scroll_to.as_ref() == Some(&message.key) {
+                            row.scroll_to_me(Some(egui::Align::Center));
+                        }
+                        if row.clicked() {
+                            row.request_focus();
+                            ui.memory_mut(|memory| {
+                                memory.set_focus_lock_filter(
+                                    row.id,
+                                    egui::EventFilter {
+                                        vertical_arrows: true,
+                                        ..Default::default()
+                                    },
+                                )
+                            });
                             opened = Some(message.key.clone());
                         }
                         ui.separator();
                     }
                 });
             });
+        self.scroll_to = None;
         if let Some(key) = opened {
             self.mailbox.open(&key);
             self.selected = Some(key);
@@ -123,6 +242,8 @@ impl eframe::App for MadeMail {
                 .iter()
                 .find(|m| Some(&m.key) == self.selected.as_ref())
             {
+                self.reader =
+                    egui::Id::unique(("reader-text", &message.key.account, message.key.id));
                 ui.heading(&message.subject);
                 ui.label(format!("From: {}", message.sender));
                 ui.separator();
@@ -136,7 +257,14 @@ impl eframe::App for MadeMail {
                 });
                 ui.separator();
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.add(egui::Label::new(&message.body).selectable(true));
+                    let mut body = message.body.as_str();
+                    ui.add(
+                        egui::TextEdit::multiline(&mut body)
+                            .id(self.reader)
+                            .desired_width(f32::INFINITY)
+                            .desired_rows(20)
+                            .frame(egui::Frame::NONE),
+                    );
                 });
             } else {
                 ui.heading("Choose a message");
@@ -159,3 +287,5 @@ fn main() -> eframe::Result {
         Box::new(|cc| Ok(Box::new(MadeMail::new(cc)?))),
     )
 }
+
+mod navigation;
