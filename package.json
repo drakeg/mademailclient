@@ -90,5 +90,5 @@
     "mailparser": "3.12.4",
     "nodemailer": "10.2.1"
   },
-  "packageManager": "pnpm@11.25.0"
+  "packageManager": "pnpm@11.28.11"
 }
