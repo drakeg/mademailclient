@@ -60,3 +60,7 @@ pnpm installation and Renovate both require releases to be at least 24 hours old
 PR #6 originally selected Electron 45.3.1 less than three hours after publication, so frozen installs correctly failed the age check before tests/builds. The PR now uses Electron 45.3.0, the latest eligible version at investigation time, with a regenerated lockfile. Later versions remain eligible for normal Renovate updates once their cooldown passes. No release or merge is part of this CI fix.
 
 Reference: https://docs.renovatebot.com/configuration-options/#minimumreleaseage .
+
+## Rust desktop evaluation
+
+`rust-desktop.yml` adds separate Mac/Windows/Linux formatting, clippy, tests and release-mode compilation with Rust 1.99.1 and Cargo.lock. Artifacts are named `rust-evaluation-*` and contain an offline sample executable, not a mail-ready installer. The existing desktop publishing workflow remains unchanged. See `docs/RUST_DESKTOP.md` and the N01–N07 migration acceptance plan.

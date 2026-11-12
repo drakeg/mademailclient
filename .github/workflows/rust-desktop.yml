@@ -1,0 +1,38 @@
+name: Rust desktop evaluation
+on: [push, pull_request]
+permissions:
+  contents: read
+concurrency:
+  group: rust-desktop-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy
+      - name: Install Linux build libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev
+      - name: Check formatting
+        run: cargo +1.99.1 fmt --all -- --check
+      - name: Check native implementation
+        run: cargo +1.99.1 clippy --workspace --all-targets --locked -- -D warnings
+      - name: Test synthetic mailbox contracts
+        run: cargo +1.99.1 test --workspace --locked
+      - name: Build evaluation executable
+        run: cargo +1.99.1 build --release -p made-mail-native --locked
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-evaluation-${{ runner.os }}
+          path: |
+            target/release/made-mail-native
+            target/release/made-mail-native.exe
+          if-no-files-found: error

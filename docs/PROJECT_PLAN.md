@@ -145,3 +145,7 @@ The owner reported “This action is unavailable for this message or account” 
 
 ## R03a — confirmed Empty Junk / Deleted Items (implementation under review)
 Own Made Mail code; no Mailcraft source used. Native Mailbox and folder context commands select one account and show a native cancel-default permanent-deletion confirmation. UID snapshot (maximum 5,000), UIDVALIDITY/account/mapping revalidation, UIDPLUS-only targeted expunge, batches of 500 and encrypted durable status prevent broad fallback or automatic retries. Native/protocol/synthetic acceptance is required before release; real-provider acceptance remains pending. Permanent-delete rules and automatic replies remain separate backlog work.
+
+## Native Rust migration — owner priority
+
+The owner authorized removing Electron/webviews from the future desktop runtime. See `tasks/plan.md`, `tasks/todo.md`, `docs/RUST_DESKTOP.md` and ADR 0004. N01 starts an original, offline Rust model and desktop toolkit evaluation; N02 validates OS polish/accessibility before committing to that toolkit. N03–N07 then migrate account setup, mail operations, drafts/attachments, rules/purge, profiles and installers. Existing releases remain available until replacement acceptance. No Mailcraft code or assets may be incorporated. Native Rust does not imply OS-native widgets: the candidate uses custom-drawn panes with OS-native Mac/Windows menus; this distinction is part of the acceptance gate.
