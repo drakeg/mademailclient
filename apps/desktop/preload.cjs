@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('desktopMail', {
     return ()=>ipcRenderer.removeListener('menu:command',listener);
   },
   setMessageMenuState: state => ipcRenderer.send('message:menu-state',state),
-  mail: Object.fromEntries(['apply','history','getSettings','saveSettings'].map(name=>[name,input=>ipcRenderer.invoke('mail:'+name,input)])),
+  mail: Object.fromEntries(['apply','history','getSettings','saveSettings','empty'].map(name=>[name,input=>ipcRenderer.invoke('mail:'+name,input)])),
   rules: Object.fromEntries(['list','save','remove','reorder','preview','run'].map(name=>[name,input=>ipcRenderer.invoke('rules:'+name,input)])),
   outgoing: Object.fromEntries(['list','save','discard','send','chooseAttachments','removeAttachment','forwardAttachments','clearForwardPending'].map(name=>[name,input=>ipcRenderer.invoke('outgoing:'+name,input)])),
   attachments: {save:input=>ipcRenderer.invoke('attachments:save',input)},

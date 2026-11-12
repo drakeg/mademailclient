@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Menu, protocol, session, dialog, ipcMain, safeStorage, shell } = require('electron');
+const {createMailboxEmpty,registerMailboxEmpty}=require('./mailbox-empty.cjs');
 const {createMailActions,registerMailActions}=require('./mail-actions.cjs');
 const {createMailRules,registerMailRules}=require('./mail-rules.cjs');
 const {createOutgoing,registerOutgoing}=require('./outgoing.cjs');
@@ -72,7 +73,12 @@ if(primary)app.whenReady().then(()=>{
   oauthService=createOAuthService({vault,config,nativeCallbackReady:app.isPackaged&&app.isDefaultProtocolClient('com.mademailclient.auth'),openExternal:url=>shell.openExternal(url),testInbox:a=>withInbox(a,async()=>{}),testSmtp:verifySmtp});
   registerOAuthIPC(ipcMain,()=>window,oauthService);
   const encrypted=name=>createVault(join(app.getPath('userData'),name+'.enc'),safeStorage);
-  const mailActions=createMailActions({vault,journal:encrypted('mail-actions'),settings:encrypted('folder-settings'),resolveAccount:a=>oauthService.prepare(a)});
+  const folderSettings=encrypted('folder-settings');
+  const mailboxEmpty=createMailboxEmpty({vault,journal:encrypted('mailbox-empty'),settings:folderSettings,resolveAccount:a=>oauthService.prepare(a)});
+  registerMailboxEmpty(ipcMain,()=>window,mailboxEmpty,dialog,{vault});
+  const mailActions=createMailActions({vault,journal:encrypted('mail-actions'),settings:folderSettings,resolveAccount:a=>oauthService.prepare(a)});
+  const messageHistory=mailActions.history;
+  mailActions.history=async()=>[...await messageHistory(),...await mailboxEmpty.history()].sort((a,b)=>b.at.localeCompare(a.at)).slice(0,200);
   const mailRules=createMailRules({vault,store:encrypted('rules'),cursors:encrypted('rule-cursors'),actions:mailActions,resolveAccount:a=>oauthService.prepare(a)});
   registerMailActions(ipcMain,()=>window,mailActions);registerMailRules(ipcMain,()=>window,mailRules);
   registerAttachments(ipcMain,()=>window,vault,dialog,{resolveAccount:a=>oauthService.prepare(a)});

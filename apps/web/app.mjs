@@ -118,8 +118,18 @@ render();
 
 let pendingFolder = null;
 const mailboxLabel = folder => folder === 'junk' ? 'Junk' : 'Deleted Items';
-function requestEmpty(folder, accountId) {
- if(!demo){notice('Select messages and Delete to move them to Trash. Permanently emptying a connected mailbox is not available.');return;}
+async function requestEmpty(folder, accountId) {
+ if(!demo){
+  if(actionBusy)return notice('Wait for the current mailbox change to finish.');
+  if(!window.desktopMail)return notice('Emptying connected mailboxes requires the desktop app.');
+  accountId ||= mailboxScope().accountId;
+  actionBusy=true;render();
+  try{const result=await window.desktopMail.mail.empty({role:folder,accountId});if(!result.ok)throw Error(result.error);
+   if(result.data.status==='done')notice(result.data.count ? 'The confirmed messages were permanently deleted.' : 'This folder is already empty.');
+   else if(result.data.status!=='cancelled')notice(result.data.error);
+   if(result.data.status!=='cancelled'){folderPages.clear();await loadCurrentFolder(false,true);}
+  }catch(e){notice(e.message);}finally{actionBusy=false;render();}return;
+ }
  if (!['junk','trash'].includes(folder)) return;
  const count=messages.filter(m=>m.folder===folder&&(!accountId||m.accountId===accountId)).length;
  if(!count){notice(`${mailboxLabel(folder)} is already empty.`);return;}
@@ -184,7 +194,7 @@ const demoTree=document.querySelector('.account-tree').innerHTML;
 function rebuildAccounts(){
  const tree=document.querySelector('.account-tree');tree.replaceChildren();
  if(demo){tree.innerHTML=demoTree;}else for(const a of accounts){const details=text('details','',tree,'mail-account');details.open=true;text('summary',a.email,details);for(const f of foldersByAccount.get(a.id)||[{path:'INBOX',name:'Inbox',key:'inbox'}]){const b=text('button',f.name,details,'nav-item');b.dataset.view=a.id+':'+f.key;names[b.dataset.view]=a.email+' · '+f.name;}}
- tree.querySelectorAll('[data-view]').forEach(b=>{b.onclick=async()=>{view=b.dataset.view;selectedId=null;render();if(!demo)await loadCurrentFolder(false,true);};const {folder,accountId}=mailboxScope(b.dataset.view);if(['junk','trash'].includes(folder))b.oncontextmenu=async event=>{event.preventDefault();if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(folder)==='empty')requestEmpty(folder,accountId);}catch{notice('Use the Empty button in this mailbox.');}}else requestEmpty(folder,accountId);};});
+ tree.querySelectorAll('[data-view]').forEach(b=>{b.onclick=async()=>{view=b.dataset.view;selectedId=null;render();if(!demo)await loadCurrentFolder(false,true);};const {folder,accountId}=mailboxScope(b.dataset.view);const path=(foldersByAccount.get(accountId)||[]).find(f=>f.key===folder)?.path;const role=demo?folder:roleOf({accountId,path,folder});if(['junk','trash'].includes(role))b.oncontextmenu=async event=>{event.preventDefault();if(window.desktopMail){try{if(await window.desktopMail.chooseMailboxAction(role)==='empty')requestEmpty(role,accountId);}catch{notice('Use Mailbox → Empty Junk or Empty Deleted Items.');}}else requestEmpty(role,accountId);};});
  const select=document.querySelector('#rule-form [name="account"]'),previousAccount=select.value;select.replaceChildren();const all=text('option',demo?'All accounts':'Choose account…',select);all.value='all';for(const a of demo?[{id:'work',email:'alex@northstar.example'},{id:'personal',email:'alex@icloud.example'}]:accounts){const o=text('option',a.email,select);o.value=a.id;}if([...select.options].some(o=>o.value===previousAccount))select.value=previousAccount;
  document.querySelector('.demo-status').textContent=demo?'Sample mail':accounts.length+' account(s)';
  el('connection-state').textContent=demo?'Demo · fictional mail':'Connected desktop preview';
