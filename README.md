@@ -3,10 +3,16 @@
 An open-source email client bringing existing accounts into one workspace, inspired by familiar Outlook and Apple Mail workflows.
 
 ## Status
-Foundation prototype, not a production email client. The browser demo displays fictional messages, supports unified/account inboxes and search, and previews rules. It does not connect accounts, persist rules, send mail, execute actions, or run background jobs. No desktop installers exist yet.
+Version 0.4.1 fixes misleading Delete progress/disabled-state messages. Version 0.4.0 adds sending attachments, encrypted draft attachment retention and forwarding original attachments. It also publishes Apple Silicon/Intel Mac DMGs directly in Releases with an explicit ad-hoc signing/notarization notice. See [attachment support and limits](docs/ATTACHMENTS.md). RPM packaging and protected Mac signing/notarization jobs remain included (Mac credentials pending). The mail features from 0.2.1 include live mailbox actions and saved rules to the connected IMAP/SMTP workflow: read, reply/forward, send, move, Delete-to-Trash, Archive, Junk/Not Junk, read/unread and flags. Accounts, folder mappings, local drafts and rules are saved with OS encryption. Overlapping account reads are queued instead of rejected, confirmed read/flag changes survive refresh races, and Mac source updates replace the application without retaining backup copies. Rules support ordered conditions/exceptions, preview/apply for existing recent mail, and newly received inbox processing while the app is open. See [current mail workflow contract](docs/MAIL_WORKFLOWS.md) and [downloads](https://github.com/drakeg/mademailclient/releases). Real-provider acceptance remains pending. Server drafts, offline caching and permanent purge are not implemented. OAuth browser sign-in still needs publisher registrations. Mac downloads are ad-hoc signed and not notarized; OS approval may be required.
 
-## Run locally
-Requires Node.js 22 or newer. No external packages or credentials are required.
+## Installable desktop apps (primary delivery)
+
+Start with [installation instructions](docs/INSTALLERS.md): Mac DMGs, Windows setup EXE, and Linux DEB/RPM/AppImage downloads. No developer tools are needed to install.
+
+See [desktop setup and installer builds](docs/DESKTOP.md). Mac and Windows desktop apps take priority; hosted web delivery follows later. Both use bundled interface assets without requiring a running web server.
+
+## Run the browser prototype locally
+Requires Node.js 22 or newer. The browser demo needs no credentials. Install locked dependencies with `pnpm install --frozen-lockfile` before running tests or the desktop app.
 
 ```sh
 npm run dev
@@ -30,3 +36,10 @@ Start with [project plan](docs/PROJECT_PLAN.md), [architecture](docs/ARCHITECTUR
 
 ## License
 MIT; see LICENSE. This is an original implementation and is not affiliated with Microsoft or Apple. Do not copy proprietary code, assets, or branding.
+
+## Alpha testing and releases
+See [desktop testing](docs/TESTING.md) and [alpha acceptance status](docs/releases/alpha-acceptance.md). Platform installers are built by GitHub Actions. Maintainers publish explicitly requested Windows/Linux preview releases from the release/milestone-* branch after a successful installer run for the exact commit. Mac integrity checks are required; Developer ID/notarized builds use a separate protected signing job. Normal distribution remains gated on native installation acceptance and signing/notarization. Release source archives are not installers.
+
+## Mail workspace
+
+Desktop commands use native OS menus. Add Account and Accounts/Settings live in the application/File menu; Rules lives in Mailbox. The left pane contains only mailbox/folder navigation. Selected-message commands live in the right reading pane and Message menu, with contextual Junk/Not Junk. See [menu and layout contract](docs/MENU_LAYOUT.md) for current capabilities and limitations.

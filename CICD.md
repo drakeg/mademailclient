@@ -17,3 +17,38 @@ Backend: encrypted credentials, tenant isolation tests, idempotent job tests, ba
 
 ## Deployment and rollback
 Not available yet. Before enabling delivery, record hosting target, operator owner, artifact/version identifiers, environment variables, health checks, migration sequence, promotion approval, and rollback commands in an operator runbook. Roll back to a known artifact only after checking schema compatibility. Pause workers before investigating repeated destructive actions. Do not claim a deploy succeeded without a reachable smoke test.
+
+## Desktop prototype builds (implemented)
+See `.github/workflows/desktop.yml` and docs/DESKTOP.md. Mac, Windows and Linux runners install exact locked dependencies, run checks/tests and upload unsigned DMG/EXE/DEB/RPM/AppImage artifacts. These jobs do not publish releases. Signing, notarization and native install/upgrade smoke tests remain release gates.
+
+## Alpha draft release pipeline
+The desktop workflow now builds and smoke-tests Mac arm64, Mac x64, Windows x64 and Linux x64 separately. Feature branch pushes and PRs produce Actions artifacts only. A `v*-alpha.*` tag builds those same targets; after all pass, a separate job with contents:write downloads only this run's installers, verifies the tag matches package.json, requires all five expected installer filenames, writes SHA256SUMS.txt, and creates a draft prerelease via the runner's built-in gh CLI. It never publishes automatically and does not receive signing secrets. Existing drafts are not overwritten on reruns; inspect the existing release before deciding how to retry.
+
+Review docs/TESTING.md and docs/releases/alpha-acceptance.md before publishing. Draft releases are visible only to authorized repository users. Creating a tag does not merge its branch. Signing/notarization and manual installer acceptance remain required for normal distribution.
+
+## Mac trust regression gate
+After the installed alpha was reported as damaged, Mac tag jobs now require strict signature verification, stapled notarization and Gatekeeper acceptance. Current unsigned tag builds will fail by design; development branch builds remain unsigned and must not be described as normal-installation-ready. See docs/MAC_SIGNING.md for the missing credentials and signed-build plan.
+
+The account adapter adds locked runtime IMAP/MIME dependencies. CI installs these into packaged apps; run production dependency auditing on updates. Account unit tests use synthetic clients and an injected encryption adapter; live credentials must never be added to CI. Packaged smoke tests assert empty startup and explicitly enter sample mode. Signing gates remain unchanged.
+
+OAuth packaging accepts public client IDs through repository Actions variables GOOGLE_DESKTOP_CLIENT_ID and YAHOO_PUBLIC_CLIENT_ID. Empty values keep browser sign-in unavailable. Do not put confidential client secrets or user tokens in the bundle. Packaged smoke checks provider selection and app-password fallback without opening real provider sign-in or requiring account credentials. Yahoo callback protocol installation and actual consent require separate acceptance.
+
+## Linux installer increment
+
+The desktop matrix also builds Linux x64 AppImage and DEB on Ubuntu 22.04, then launches the unpacked app under Xvfb with the sandbox enabled. Artifacts are uploaded only after the smoke test passes. Alpha draft collection now requires five exact installer filenames (two DMGs, Windows EXE, Linux AppImage and DEB). Package-manager installation, upgrade and clean-machine trust remain manual acceptance gates. See docs/INSTALLERS.md. No signing gate has been relaxed.
+
+## Requested milestone publication
+
+After the exact source commit passes Desktop installers, pushing that commit to a new release/milestone-* branch runs Publish tested desktop preview downloads. It selects a successful push-triggered installer run for the exact SHA, downloads only Windows/Linux artifacts, validates the version/three declared filenames and checksums, creates a non-overwriting matching source tag, and publishes a prerelease (never latest). No signing secrets are exposed. This replaces the alpha.1-specific publisher. Mac binaries are excluded, not exempted from trust checks; the existing all-platform tag/draft path retains its Mac trust gate. Reusing an existing published version fails rather than overwriting its assets. Bump the alpha version and rewrite release notes for each milestone.
+
+## 0.2.0 workflow milestone
+
+The platform-scoped asset validator accepts matching numeric versions as well as alpha/beta prereleases. The requested milestone publisher still emits a GitHub prerelease, downloads only installer artifacts from a successful four-platform push run for the exact SHA, and excludes untrusted Mac binaries. New packaged smoke coverage checks saved-rule editing/preview/apply and saved folder mappings with synthetic services. Tests do not submit live mail.
+
+## 0.2.2 RPM and signed Mac distribution
+
+Linux builds install the RPM build tools and produce AppImage, DEB and RPM; all three are required by the release collector and hashed. See INSTALLERS.md for distro commands. The preview publisher includes an optional protected `signed-mac` matrix for Intel and Apple Silicon. Set repository variable `MAC_RELEASE_ENABLED=true` only after configuring the `desktop-release` environment and secrets documented in docs/MAC_SIGNING.md. It rebuilds the exact already-tested commit, requires signing/notarization and app/DMG verification, and smoke-tests the signed bundle. Both signed DMGs are downloaded from that same publishing run. Any enabled signing failure blocks publication; when disabled, only Windows/Linux are published. Unsigned development Mac artifacts cannot enter this path. Live signing and clean downloaded-install acceptance remain pending.
+
+## 0.4.0 current Mac publication policy
+
+At the owner's explicit request, normal milestone releases collect all six installers. Mac matrix jobs use the separate ad-hoc preview config, check codesign integrity, verify and mount the DMG, inspect its app, and run packaged smoke. The protected Developer ID/notarization job remains opt-in; successful signed DMGs replace preview DMGs in that same release. Enabling signing and then failing blocks publication. There is no silent fallback in that case. The all-platform checksum collector is mandatory. Earlier Windows/Linux-only descriptions above are historical and superseded for 0.4.0 onward. Release notes explicitly disclose the absence of Developer ID/notarization. No installer changes OS trust settings.

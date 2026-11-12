@@ -1,0 +1,136 @@
+name: Desktop installers
+on:
+  workflow_dispatch:
+  push:
+    branches: ['feat/**', main]
+    tags: ['v*-alpha.*']
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+jobs:
+  package:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: mac
+            arch: arm64
+            executable: dist/mac-arm64/Made Mail.app/Contents/MacOS/Made Mail
+          - os: macos-15-intel
+            platform: mac
+            arch: x64
+            executable: dist/mac/Made Mail.app/Contents/MacOS/Made Mail
+          - os: windows-latest
+            platform: win
+            arch: x64
+            executable: dist/win-unpacked/Made Mail.exe
+          - os: ubuntu-22.04
+            platform: linux
+            arch: x64
+            executable: dist/linux-unpacked/mademail
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm test
+      - name: Configure public native OAuth client IDs
+        run: node scripts/configure-oauth.mjs
+        env:
+          MADEMAIL_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_DESKTOP_CLIENT_ID }}
+          MADEMAIL_YAHOO_CLIENT_ID: ${{ vars.YAHOO_PUBLIC_CLIENT_ID }}
+      - name: Install RPM packaging tools
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Package Mac preview with ad-hoc integrity signature
+        if: matrix.platform == 'mac'
+        run: pnpm exec electron-builder --config scripts/electron-builder-mac-preview.cjs --mac --${{ matrix.arch }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # This job has no signing secrets and the config forces identity '-'.
+          CSC_FOR_PULL_REQUEST: 'true'
+      - name: Verify Mac preview bundle integrity
+        if: matrix.platform == 'mac'
+        shell: bash
+        env:
+          APP_EXECUTABLE: ${{ matrix.executable }}
+        run: |
+          app_bundle="${APP_EXECUTABLE%/Contents/MacOS/*}"
+          codesign --verify --deep --strict --verbose=2 "$app_bundle"
+          hdiutil verify dist/*.dmg
+          mount_dir=$(mktemp -d "$RUNNER_TEMP/mademail-preview.XXXXXX")
+          trap 'hdiutil detach "$mount_dir" || true; rmdir "$mount_dir" || true' EXIT
+          hdiutil attach dist/*.dmg -readonly -nobrowse -mountpoint "$mount_dir"
+          codesign --verify --deep --strict --verbose=2 "$mount_dir/Made Mail.app"
+      - name: Package Windows and Linux
+        if: matrix.platform != 'mac'
+        run: pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Inspect generated RPM metadata
+        if: matrix.platform == 'linux'
+        run: rpm -qip dist/*.rpm && rpm -qpR dist/*.rpm
+      - name: Launch packaged app and exercise synthetic inbox
+        if: matrix.platform != 'linux'
+        run: pnpm desktop:smoke "${{ matrix.executable }}"
+      - name: Launch Linux packaged app under a virtual display
+        if: matrix.platform == 'linux'
+        run: xvfb-run --auto-servernum pnpm desktop:smoke "${{ matrix.executable }}"
+      - name: Require trusted Mac distribution before creating any release
+        if: matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          APP_EXECUTABLE: ${{ matrix.executable }}
+        run: |
+          app_bundle="${APP_EXECUTABLE%/Contents/MacOS/*}"
+          codesign --verify --deep --strict --verbose=2 "$app_bundle"
+          xcrun stapler validate "$app_bundle"
+          spctl --assess --type execute --verbose=4 "$app_bundle"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+          if-no-files-found: error
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installer-*
+          merge-multiple: true
+          path: release-assets
+      - name: Verify version and generate SHA-256 checksums
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release-assets.mjs
+      - name: Create draft prerelease (never publish automatically)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" release-assets/* --verify-tag --draft --prerelease --title "Made Mail $RELEASE_TAG — desktop preview" --notes-file docs/releases/alpha-notes.md

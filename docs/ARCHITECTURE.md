@@ -4,7 +4,7 @@
 A localhost Node static server serves a dependency-free web UI. Synthetic fixtures exist in browser memory. A shared ECMAScript module validates rules and emits action plans. Preview never executes actions. Rule ordering follows array order, exceptions override matches, and stop processing ends evaluation after a matching rule. Conditions use case-insensitive literal comparisons; there is no regex or expression evaluation. The UI exposes a subject-only subset of the core schema.
 
 ## Target architecture (proposed)
-Shared web UI -> authenticated application API -> account-scoped provider adapters. Synchronization and rule execution run in durable workers. A relational store holds account metadata, folder maps, sync cursors, versioned rules, execution records and encrypted credential references. A desktop shell reuses UI and domain packages; shell/framework selection requires a separate decision and native integration spike.
+Shared web UI -> authenticated application API -> account-scoped provider adapters. Synchronization and rule execution run in durable workers. A relational store holds account metadata, folder maps, sync cursors, versioned rules, execution records and encrypted credential references. A desktop shell reuses UI and domain packages; Electron packaging is selected in ADR 0002 and serves bundled assets through an allowlisted custom protocol.
 
 Provider adapters expose folder capabilities, message retrieval, incremental changes, send/reply, move, Junk, Trash and permanent deletion. Microsoft Graph, Gmail, and IMAP/SMTP support are separate delivery increments, not current capabilities. OAuth registration, scopes, consent and work-account policies must be verified against official provider documentation during implementation. iCloud authentication and IMAP support need a dedicated capability investigation.
 
@@ -16,7 +16,27 @@ Use stable provider IDs and account IDs. Deduplicate change events. Persist an e
 Preview uses a snapshot and reports planned actions; execution rechecks permissions and capabilities. Folder destinations are provider folder IDs, not display names. Provider-specific semantics must be visible to users; unsupported actions fail clearly.
 
 ## Desktop and offline
-Mac/Windows are product requirements, not delivered binaries. Evaluate Tauri versus Electron after UI/API contracts stabilize. Define local encrypted cache and conflict rules before enabling offline mutations. Hosted rules continue when clients close; a closed standalone app cannot promise background execution.
+Mac/Windows desktop apps are the primary delivery track. Electron shell and DMG/NSIS build configurations are implemented; signing, installer acceptance, native credentials and updates remain pending. Define local encrypted cache and conflict rules before enabling offline mutations. Hosted rules continue when clients close; a closed standalone app cannot promise background execution.
 
 ## Decisions
-See adr/0001-foundation.md. Future decisions: desktop shell, identity/session design, database and queue, provider order, credentials/key management, and hosting distribution.
+See adr/0001-foundation.md. See adr/0002-desktop-first.md. Future decisions: identity/session design, database and queue, provider order, credentials/key management, and hosting distribution.
+
+## Desktop account adapter increment
+
+See [account contract and security boundaries](ACCOUNTS.md). Fixed main-process IPC now manages an encrypted account vault and read-only TLS IMAP inbox requests. This supersedes the previous statement that all provider connections and native credentials are unimplemented; OAuth and the target worker architecture remain proposed. No hosted account API exists.
+
+## Incoming/outgoing account settings
+
+The desktop account service now also stores encrypted SMTP settings, supports secret-safe account edits and verifies both connections before atomic persistence. Discovery is a separate credential-free IPC operation using built-in provider settings or domain DNS SRV, with manual fallback. The renderer's account-setup controller discards stale lookup results and never persists credentials. Transport validation is shared in mail-network.cjs; SMTP verification remains separate from any future message-sending adapter. See ACCOUNTS.md and ACCOUNT_SETUP_PLAN.md.
+
+## 0.2.0 desktop mutation and rule worker
+
+mail-actions.cjs is the authorized writable IMAP boundary, with same-account destination validation, mandatory server MOVE capability and encrypted durable operation claims. mail-rules.cjs persists definitions/cursors and uses the pure core planner; it processes new inbox envelopes during foreground polling and supports single-use recent-mail preview/apply. There is no always-on backend worker. Both services have fixed same-origin/main-frame IPC and no generic filesystem/network interface. See MAIL_WORKFLOWS.md for state transitions, deduplication scope and acceptance limits.
+
+## Received MIME attachments
+
+incoming.cjs parses a bounded source behind the existing read-only TLS account boundary. accounts:content returns text and metadata; attachments:save refetches/verifies the attachment and writes only to a native-dialog destination through exclusive creation. No decoded bytes or general filesystem access reach the renderer. This supersedes the earlier text-preview-only receive path. See ATTACHMENTS.md.
+
+## Outgoing attachment snapshots (0.4.0)
+
+outgoing-files.cjs bounds native-selected regular files and encodes immutable byte snapshots for the existing encrypted journal. outgoing.cjs owns attachment revisions, quota checks, verified forward imports and pending-forward submission gates. The renderer gets only metadata. The SMTP MIME builder uses stored buffers with file/URL access disabled; accepted/unknown retry semantics are unchanged. See ATTACHMENTS.md.
