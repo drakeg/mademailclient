@@ -47,3 +47,7 @@ For GUI acceptance only, `cargo run -p made-mail-native -- --account-fixture` us
 Accounts → Test IMAP and SMTP… shows the exact servers and requests explicit confirmation. Verification uses trusted TLS, public-address DNS checks and bounded protocol handling, then reports IMAP and SMTP independently. It authenticates only: no mailbox is opened and no email is submitted. Browser sign-in, provider discovery, receiving and sending remain later work. See [verification safeguards and limits](RUST_CONNECTION_VERIFICATION.md).
 
 In `--account-fixture` mode the **Preview sign-in test…** button shows the confirmation, but Verify is disabled and a runtime guard prevents network use. Test certificates are used only by synthetic loopback tests, never production trust.
+
+## Built-in setup presets (N03c)
+
+Enter a gmail.com, yahoo.com or icloud.com email in a new blank account form and choose **Fill known provider settings**. IMAP and SMTP defaults are prepared locally; existing custom fields and passwords remain untouched. Unknown domains remain manual and Microsoft addresses explain the missing modern-authentication support. This is not network discovery or browser sign-in. See [preset scope and official sources](RUST_PROVIDER_PRESETS.md).
