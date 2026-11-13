@@ -44,4 +44,4 @@ features = ["crypto-rust"]
 version = "=0.2.18"
 default-features = false
 [dependencies.base64]
-version = "=0.22.1"
+version = "=0.23.1"
