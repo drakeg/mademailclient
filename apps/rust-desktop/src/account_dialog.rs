@@ -228,6 +228,10 @@ impl AccountDialog {
                     ui.text_edit_singleline(&mut self.form.email).labelled_by(label.id);
                     ui.end_row();
                 });
+                if ui.button("Fill known provider settings").clicked() {
+                    self.status=match crate::provider_presets::apply(&mut self.form) { Ok(note)|Err(note)=>note.into() };
+                }
+                ui.label("Built-in presets: gmail.com, yahoo.com and icloud.com. No lookup or sign-in is performed.");
                 Self::endpoint(ui, "Incoming · IMAP", &mut self.form.imap_host, &mut self.form.imap_port, &mut self.form.imap_security, &mut self.form.imap_user, &mut self.form.imap_password);
                 Self::endpoint(ui, "Outgoing · SMTP", &mut self.form.smtp_host, &mut self.form.smtp_port, &mut self.form.smtp_security, &mut self.form.smtp_user, &mut self.form.smtp_password);
                 ui.label("Use an app password if required. Browser sign-in and discovery are not implemented. Save settings, then Test IMAP and SMTP to check authentication.");

@@ -2,7 +2,7 @@
 
 Made Mail is moving toward a Rust desktop runtime without Electron or a webview. This branch starts an independent, original evaluation; **it is not yet a usable replacement email client**. No Mailcraft source or assets are used.
 
-The executable opens only invented mail: All Inboxes, two account Inboxes and a selectable reading pane. Opening a message marks that account's message read. Mac/Windows native menus expose Accounts and All Inboxes; mail-changing menu items are disabled. OS window decorations remain enabled. Linux has an in-window menu. The Accounts dialog can save unverified settings in a separate OS credential namespace; it opens no provider connections and never accesses the Electron profile.
+The executable opens only invented mail: All Inboxes, two account Inboxes and a selectable reading pane. Opening a message marks that account's message read. Mac/Windows native menus expose Accounts and All Inboxes; mail-changing menu items are disabled. OS window decorations remain enabled. Linux has an in-window menu. The Accounts dialog can save unverified settings in a separate OS credential namespace; it can explicitly test saved IMAP/SMTP sign-ins after server confirmation, and never accesses the Electron profile. Mail receiving/sending remain unavailable.
 
 ## Development
 
@@ -36,7 +36,7 @@ These changes advance the toolkit evaluation, not account/provider readiness. Fu
 
 File → Add Account… and the Mac app menu → Accounts… open the Rust Accounts dialog. Enter email, IMAP and SMTP hostnames/ports, TLS or STARTTLS, and separate usernames/passwords. **Save settings securely** stores unverified settings; it does not connect, fetch mail or send anything. Saved settings can be reloaded and removed with confirmation. The Inbox panes still contain fictional mail.
 
-This is a separate Rust evaluation namespace. Existing Electron accounts, rules, drafts and mail are not imported or changed. Auto-discovery, browser sign-in, verification, editing saved settings and using these settings for live mail remain subsequent work. Full toolkit/accessibility acceptance also remains open.
+This is a separate Rust evaluation namespace. Existing Electron accounts, rules, drafts and mail are not imported or changed. Network discovery, browser sign-in, editing saved settings and using these settings to receive/send mail remain subsequent work. Explicit sign-in verification and offline presets are described below. Full toolkit/accessibility acceptance also remains open.
 
 The default backend explicitly selects Mac Keychain, Windows Credential Manager (local persistence), or Linux Secret Service. A locked/unavailable backend fails visibly; there is no plaintext or automatic in-memory fallback. See [the storage contract](RUST_ACCOUNT_STORAGE.md).
 
@@ -47,3 +47,7 @@ For GUI acceptance only, `cargo run -p made-mail-native -- --account-fixture` us
 Accounts → Test IMAP and SMTP… shows the exact servers and requests explicit confirmation. Verification uses trusted TLS, public-address DNS checks and bounded protocol handling, then reports IMAP and SMTP independently. It authenticates only: no mailbox is opened and no email is submitted. Browser sign-in, provider discovery, receiving and sending remain later work. See [verification safeguards and limits](RUST_CONNECTION_VERIFICATION.md).
 
 In `--account-fixture` mode the **Preview sign-in test…** button shows the confirmation, but Verify is disabled and a runtime guard prevents network use. Test certificates are used only by synthetic loopback tests, never production trust.
+
+## Built-in setup presets (N03c)
+
+Enter a gmail.com, yahoo.com or icloud.com email in a new blank account form and choose **Fill known provider settings**. IMAP and SMTP defaults are prepared locally; existing custom fields and passwords remain untouched. Unknown domains remain manual and Microsoft addresses explain the missing modern-authentication support. This is not network discovery or browser sign-in. See [preset scope and official sources](RUST_PROVIDER_PRESETS.md).

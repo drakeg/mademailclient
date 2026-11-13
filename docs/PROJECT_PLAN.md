@@ -161,3 +161,7 @@ Under review: native-menu Accounts form with IMAP/SMTP, TLS/STARTTLS, validation
 ### N03b — explicit saved-account sign-in verification
 
 Under review: separately report IMAP/SMTP authentication over validated TLS or mandatory STARTTLS, with exact-server confirmation, DNS address pinning/private-address rejection, bounded transport/protocol reads and no credential logging/plaintext fallback. Synthetic TLS fixtures and fixture-only GUI acceptance cover success and security failures. No SELECT/FETCH or SMTP envelope/DATA, automatic retries, discovery/OAuth or live mail yet. Next: provider setup conveniences, then bounded folder/Inbox reception with account isolation and stale-message guards.
+
+### N03c — offline common-provider server presets
+
+Under review on top of N03b: exact-domain Gmail/Yahoo/iCloud server defaults, iCloud's distinct incoming username and SMTP STARTTLS choice, and explicit refusal to overwrite existing custom settings. Passwords remain untouched; no network activity is performed. Unknown/custom domains remain manual; Microsoft modern authentication remains a separate prerequisite. Synthetic unit and Mac GUI fixture acceptance validate this convenience without a provider connection.
