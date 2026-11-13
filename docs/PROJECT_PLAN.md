@@ -157,3 +157,7 @@ Adds message-list Up/Down/Home/End within the current Inbox, F6/Shift+F6 pane na
 ### N03a — separate Rust account settings and OS credential entries
 
 Under review: native-menu Accounts form with IMAP/SMTP, TLS/STARTTLS, validation, masked secrets, explicit unverified status and removal confirmation. Explicit per-platform credential backends and bounded entries/index, discoverable partial writes and cross-process operation lock; no plaintext fallback, provider connections or Electron import. Synthetic GUI/storage tests and a unique disposable Mac Keychain roundtrip validate this slice. Windows/Linux native credential restart acceptance, discovery/OAuth, verification and live mail remain open. N02 toolkit acceptance is not declared complete by this parallel storage work.
+
+### N03b — explicit saved-account sign-in verification
+
+Under review: separately report IMAP/SMTP authentication over validated TLS or mandatory STARTTLS, with exact-server confirmation, DNS address pinning/private-address rejection, bounded transport/protocol reads and no credential logging/plaintext fallback. Synthetic TLS fixtures and fixture-only GUI acceptance cover success and security failures. No SELECT/FETCH or SMTP envelope/DATA, automatic retries, discovery/OAuth or live mail yet. Next: provider setup conveniences, then bounded folder/Inbox reception with account isolation and stale-message guards.

@@ -319,3 +319,5 @@ fn main() -> eframe::Result {
 mod navigation;
 
 mod accounts;
+
+mod verify;
