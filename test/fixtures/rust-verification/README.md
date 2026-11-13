@@ -1,0 +1,7 @@
+# Synthetic TLS fixture — never use for real accounts
+
+`root.pem` is an invented test CA. `server.p12` contains a synthetic localhost server identity and its chain; its intentionally public fixture password is `made-mail-fixture`. It has no relationship to any user/account or production server. No CA private key is committed.
+
+The certificate is valid for DNS `localhost` from 2026-11-01 to 2027-11-01; regenerate and replace both files before expiry. A one-year server lifetime is intentional for platform TLS policy compatibility. The root is valid 2020–2035. Generate a new test-only RSA CA and localhost leaf with SAN `DNS:localhost`, CA false, digitalSignature/keyEncipherment and serverAuth; export the leaf key and chain as PKCS#12. Keep generation keys outside the repo. Backdate the test leaf within its one-year lifetime to avoid runner clock/date differences.
+
+Files are included only by Rust `#[cfg(test)]` code. The test connector adds this root locally; production connectors use OS trust and never load it. No system trust changes, invalid-certificate overrides or user credentials are used. Mac native-tls imports the fixture identity into its own temporary keychain and deletes that keychain on process exit. Loopback tests exercise TLS, STARTTLS, missing upgrade support, certificate/hostname rejection and authenticated command transcripts without mailbox reads or SMTP submission.

@@ -41,3 +41,9 @@ This is a separate Rust evaluation namespace. Existing Electron accounts, rules,
 The default backend explicitly selects Mac Keychain, Windows Credential Manager (local persistence), or Linux Secret Service. A locked/unavailable backend fails visibly; there is no plaintext or automatic in-memory fallback. See [the storage contract](RUST_ACCOUNT_STORAGE.md).
 
 For GUI acceptance only, `cargo run -p made-mail-native -- --account-fixture` uses an explicitly labelled temporary test store. It never accesses OS credentials and loses its test settings on exit. Do not enter real credentials in this test mode. CI uses synthetic stores; it does not access native credentials. The ignored Mac synthetic Keychain test is an explicit local acceptance check, not part of normal CI.
+
+## Verify saved sign-ins (N03b)
+
+Accounts → Test IMAP and SMTP… shows the exact servers and requests explicit confirmation. Verification uses trusted TLS, public-address DNS checks and bounded protocol handling, then reports IMAP and SMTP independently. It authenticates only: no mailbox is opened and no email is submitted. Browser sign-in, provider discovery, receiving and sending remain later work. See [verification safeguards and limits](RUST_CONNECTION_VERIFICATION.md).
+
+In `--account-fixture` mode the **Preview sign-in test…** button shows the confirmation, but Verify is disabled and a runtime guard prevents network use. Test certificates are used only by synthetic loopback tests, never production trust.

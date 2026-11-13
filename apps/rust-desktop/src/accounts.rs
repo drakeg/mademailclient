@@ -78,6 +78,7 @@ pub struct SavedAccount {
     pub id: String,
     pub label: String,
     pub incomplete: bool,
+    pub endpoints: String,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -140,10 +141,47 @@ pub fn list(store: &dyn SecretStore) -> Result<Vec<SavedAccount>> {
                 .as_ref()
                 .map(|s| s.email.clone())
                 .unwrap_or_else(|| "Incomplete account settings — remove and add again".into()),
+            endpoints: settings
+                .as_ref()
+                .map(|s| {
+                    format!(
+                        "IMAP {}:{} ({}) · SMTP {}:{} ({})",
+                        s.imap_host,
+                        s.imap_port,
+                        if s.imap_security == Security::Tls {
+                            "TLS"
+                        } else {
+                            "STARTTLS"
+                        },
+                        s.smtp_host,
+                        s.smtp_port,
+                        if s.smtp_security == Security::Tls {
+                            "TLS"
+                        } else {
+                            "STARTTLS"
+                        }
+                    )
+                })
+                .unwrap_or_default(),
             incomplete: settings.is_none(),
         });
     }
     Ok(saved)
+}
+pub fn load(store: &dyn SecretStore, id: &str) -> Result<Settings> {
+    if !valid_id(id) || !registry(store)?.ids.iter().any(|saved| saved == id) {
+        return Err("Choose a current saved account.");
+    }
+    let bytes = store
+        .read(id)?
+        .ok_or("Saved settings are incomplete. Remove and add this entry again.")?;
+    if bytes.len() > MAX_BYTES {
+        return Err("Saved settings exceed the safety limit.");
+    }
+    let settings: Settings =
+        serde_json::from_slice(&bytes).map_err(|_| "Saved settings are invalid.")?;
+    settings.validate()?;
+    Ok(settings)
 }
 pub fn add(store: &dyn SecretStore, settings: Settings) -> Result<Vec<SavedAccount>> {
     settings.validate()?;
@@ -427,5 +465,28 @@ mod native_store_tests {
             Err(keyring_core::Error::NoEntry)
         ));
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod credential_access_tests {
+    use super::*;
+    struct Unowned;
+    impl SecretStore for Unowned {
+        fn read(&self, key: &str) -> Result<Option<Zeroizing<Vec<u8>>>> {
+            assert_eq!(key, REGISTRY);
+            Ok(None)
+        }
+        fn write(&self, _: &str, _: &[u8]) -> Result<()> {
+            panic!("verification must not write credentials")
+        }
+        fn remove(&self, _: &str) -> Result<()> {
+            panic!("verification must not remove credentials")
+        }
+    }
+    #[test]
+    fn credential_loading_requires_index_membership() {
+        assert!(load(&Unowned, &uuid::Uuid::new_v4().to_string()).is_err());
+        assert!(load(&Unowned, "registry-v1").is_err());
     }
 }

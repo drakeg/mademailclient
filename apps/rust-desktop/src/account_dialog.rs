@@ -3,12 +3,18 @@ use eframe::egui;
 use std::sync::{Arc, Mutex, mpsc};
 use zeroize::Zeroizing;
 
-type Reply = Result<Vec<SavedAccount>, &'static str>;
+struct Outcome {
+    saved: Vec<SavedAccount>,
+    notice: Option<String>,
+    checked: Option<(String, bool)>,
+}
+type Reply = Result<Outcome, &'static str>;
 type Fixture = Arc<Mutex<std::collections::HashMap<String, Vec<u8>>>>;
 enum Operation {
     Load,
     Add(Settings),
     Remove(String),
+    Verify(String),
 }
 struct SessionStore(Fixture);
 impl SecretStore for SessionStore {
@@ -37,11 +43,33 @@ impl SecretStore for SessionStore {
     }
 }
 fn run(store: &dyn SecretStore, operation: Operation) -> Reply {
-    match operation {
+    let saved = match operation {
         Operation::Load => accounts::list(store),
         Operation::Add(settings) => accounts::add(store, settings),
         Operation::Remove(id) => accounts::remove(store, &id),
-    }
+        Operation::Verify(id) => {
+            let settings = accounts::load(store, &id)?;
+            let result = crate::verify::verify(&settings);
+            let checked = result.imap.is_ok() && result.smtp.is_ok();
+            let describe = |result: Result<(), &'static str>| {
+                result.err().unwrap_or("authentication succeeded")
+            };
+            return Ok(Outcome {
+                saved: accounts::list(store)?,
+                notice: Some(format!(
+                    "IMAP: {}\nSMTP: {}\nNo mailbox was read and no email was submitted. These results apply to this test, not a persistent connection.",
+                    describe(result.imap),
+                    describe(result.smtp)
+                )),
+                checked: Some((id, checked)),
+            });
+        }
+    }?;
+    Ok(Outcome {
+        saved,
+        notice: None,
+        checked: None,
+    })
 }
 pub struct AccountDialog {
     open: bool,
@@ -50,6 +78,8 @@ pub struct AccountDialog {
     pending: Option<mpsc::Receiver<Reply>>,
     status: String,
     remove: Option<String>,
+    verify: Option<(String, String)>,
+    checked: std::collections::HashMap<String, bool>,
     fixture: Option<Fixture>,
 }
 impl AccountDialog {
@@ -61,6 +91,8 @@ impl AccountDialog {
             pending: None,
             status: String::new(),
             remove: None,
+            verify: None,
+            checked: Default::default(),
             fixture: fixture.then(|| Arc::new(Mutex::new(Default::default()))),
         }
     }
@@ -81,6 +113,10 @@ impl AccountDialog {
     }
     fn start(&mut self, operation: Operation, ctx: &egui::Context) {
         if self.pending.is_some() {
+            return;
+        }
+        if self.fixture.is_some() && matches!(operation, Operation::Verify(_)) {
+            self.status = "Network verification is disabled in temporary fixture mode.".into();
             return;
         }
         let (tx, rx) = mpsc::channel();
@@ -104,9 +140,14 @@ impl AccountDialog {
                 Ok(result) => {
                     self.pending = None;
                     match result {
-                        Ok(saved) => {
-                            self.saved = saved;
-                            self.status="Saved settings only — connection and mail access have not been verified.".into();
+                        Ok(outcome) => {
+                            self.saved = outcome.saved;
+                            self.checked
+                                .retain(|id, _| self.saved.iter().any(|a| &a.id == id));
+                            if let Some((id, checked)) = outcome.checked {
+                                self.checked.insert(id, checked);
+                            }
+                            self.status=outcome.notice.unwrap_or_else(||"Saved settings only — use Verify sign-in to check authentication.".into());
                         }
                         Err(error) => self.status = error.into(),
                     }
@@ -143,15 +184,29 @@ impl AccountDialog {
             ui.separator();
             ui.heading("Saved settings");
             let mut remove = None;
+            let mut verify = None;
             if self.saved.is_empty() { ui.label("No saved settings loaded."); }
             for account in &self.saved {
                 ui.horizontal(|ui| {
                     ui.label(&account.label);
-                    ui.label(if account.incomplete { "Incomplete" } else { "Unverified" });
+                    ui.label(if account.incomplete { "Incomplete" } else if self.checked.get(&account.id)==Some(&true) { "Authentication checked this session" } else { "Unverified" });
+                    if ui.add_enabled(!busy&&!account.incomplete,egui::Button::new(if self.fixture.is_some(){"Preview sign-in test…"}else{"Test IMAP and SMTP…"})).clicked() { verify=Some((account.id.clone(),format!("{}\n{}",account.label,account.endpoints))); }
                     if ui.add_enabled(!busy, egui::Button::new("Remove…")).clicked() { remove = Some(account.id.clone()); }
                 });
             }
             if let Some(id) = remove { self.remove = Some(id); }
+            if let Some(target)=verify { self.verify=Some(target); }
+            if let Some((id,details))=self.verify.clone() {
+                ui.group(|ui| {
+                    ui.label(details);
+                    if self.fixture.is_some(){ui.label("TEST SESSION: this confirmation is preview-only; no network verification can run.");}
+                    ui.label("Send the saved credentials to these servers after trusted TLS verification? This checks authentication only: no messages will be read or sent.");
+                    ui.horizontal(|ui| {
+                        if ui.add_enabled(!busy,egui::Button::new("Cancel test")).clicked() { self.verify=None; }
+                        if ui.add_enabled(!busy&&self.fixture.is_none(),egui::Button::new("Verify sign-in")).clicked() { self.verify=None;self.start(Operation::Verify(id),ctx); }
+                    });
+                });
+            }
             if let Some(id) = self.remove.clone() {
                 ui.group(|ui| {
                     ui.label("Remove these saved settings and passwords? Remote messages will not be changed.");
@@ -175,7 +230,7 @@ impl AccountDialog {
                 });
                 Self::endpoint(ui, "Incoming · IMAP", &mut self.form.imap_host, &mut self.form.imap_port, &mut self.form.imap_security, &mut self.form.imap_user, &mut self.form.imap_password);
                 Self::endpoint(ui, "Outgoing · SMTP", &mut self.form.smtp_host, &mut self.form.smtp_port, &mut self.form.smtp_security, &mut self.form.smtp_user, &mut self.form.smtp_password);
-                ui.label("Use an app password if required. Browser sign-in, discovery and connection tests are not implemented in this Rust slice.");
+                ui.label("Use an app password if required. Browser sign-in and discovery are not implemented. Save settings, then Test IMAP and SMTP to check authentication.");
                 let save_label = if self.fixture.is_some() { "Save for this test session" } else { "Save settings securely" };
                 if ui.button(save_label).clicked() {
                     if let Err(error) = self.form.validate() { self.status = error.into(); }
@@ -195,6 +250,7 @@ impl AccountDialog {
         if !self.open {
             self.form = Self::blank();
             self.remove = None;
+            self.verify = None;
         }
     }
     #[allow(clippy::too_many_arguments)]
@@ -232,5 +288,20 @@ impl AccountDialog {
                 ui.end_row();
             });
         });
+    }
+}
+
+#[cfg(test)]
+mod verification_tests {
+    use super::*;
+    #[test]
+    fn temporary_fixture_mode_cannot_start_network_verification() {
+        let mut dialog = AccountDialog::new(true);
+        dialog.start(
+            Operation::Verify(uuid::Uuid::new_v4().to_string()),
+            &egui::Context::default(),
+        );
+        assert!(dialog.pending.is_none());
+        assert!(dialog.status.contains("disabled"));
     }
 }
