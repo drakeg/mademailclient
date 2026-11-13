@@ -1,6 +1,6 @@
 # Rust account settings and credential storage
 
-Status: N03a implementation under review. Saved settings are **unverified**; the Rust app does not yet connect to providers.
+Status: N03a implementation under review. Saved settings start **unverified**. Saving does not connect; the separate explicit sign-in test can check IMAP/SMTP authentication after confirmation. Mail receiving/sending remain unavailable.
 
 ## Boundaries and recovery
 
