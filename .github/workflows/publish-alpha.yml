@@ -43,7 +43,7 @@ jobs:
           node-version: 26
       - uses: pnpm/action-setup@v6
         with:
-          version: 12.18.0
+          version: 12.21.0
       - run: pnpm install --frozen-lockfile
       - name: Configure public native OAuth client IDs
         run: node scripts/configure-oauth.mjs
