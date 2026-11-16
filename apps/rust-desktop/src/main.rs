@@ -1,11 +1,13 @@
 mod account_dialog;
-// Rust desktop evaluation. Never opens the Electron profile or connects to a provider.
+// Rust desktop evaluation. Never opens the Electron profile.
 mod menus;
 use eframe::egui;
 use made_mail_core::{Mailbox, MessageKey, Scope};
 
 struct MadeMail {
     mailbox: Mailbox,
+    receiving: receive::state::Receiving,
+    sample: bool,
     accounts: account_dialog::AccountDialog,
     scope: Scope,
     selected: Option<MessageKey>,
@@ -20,20 +22,43 @@ impl MadeMail {
     fn new(
         cc: &eframe::CreationContext<'_>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let sample = std::env::args().any(|arg| arg == "--sample" || arg == "--account-fixture");
         Ok(Self {
-            mailbox: Mailbox::sample(),
+            mailbox: if sample {
+                Mailbox::sample()
+            } else {
+                Mailbox {
+                    accounts: vec![],
+                    messages: vec![],
+                }
+            },
+            receiving: Default::default(),
+            sample,
             accounts: account_dialog::AccountDialog::new(
                 std::env::args().any(|arg| arg == "--account-fixture"),
             ),
             scope: Scope::AllInboxes,
             selected: None,
-            status: "Rust desktop evaluation · fictional mail · no connected accounts".into(),
+            status: if sample {
+                "FICTIONAL SAMPLE · no mail connections"
+            } else {
+                "Rust read-only evaluation · add an account through File → Add Account"
+            }
+            .into(),
             _menus: menus::NativeMenus::install(cc)?,
             folders: Vec::new(),
             rows: Vec::new(),
             reader: egui::Id::unique("reader-text"),
             scroll_to: None,
         })
+    }
+    fn select(&mut self, key: MessageKey) {
+        if self.receiving.is_remote(&key) {
+            self.receiving.open(&key);
+        } else if self.sample {
+            self.mailbox.open(&key);
+        }
+        self.selected = Some(key);
     }
     fn keyboard(&mut self, ctx: &egui::Context) {
         let focus = ctx.memory(|memory| memory.focused());
@@ -104,8 +129,7 @@ impl MadeMail {
                     ctx.memory_mut(|memory| memory.request_focus(*id));
                 }
                 self.scroll_to = Some(key.clone());
-                self.mailbox.open(&key);
-                self.selected = Some(key);
+                self.select(key);
             }
         }
     }
@@ -135,6 +159,10 @@ impl eframe::App for MadeMail {
                     })
                 }),
                 "accounts" => self.accounts.open(&ctx),
+                "refresh" => {
+                    self.receiving.refresh(&self.scope);
+                    self.status = "Choose an account folder to refresh its mail.".into();
+                }
                 "about" => {
                     self.status =
                         "Made Mail · original Rust desktop evaluation · no Electron or webview"
@@ -144,6 +172,32 @@ impl eframe::App for MadeMail {
             }
         }
         self.accounts.show(&ctx);
+        for id in self.accounts.removed.drain(..) {
+            self.receiving.remove(&id, &mut self.mailbox);
+            self.selected = None;
+        }
+        if let Some((id, label)) = self.accounts.take_receive() {
+            if self.sample {
+                self.mailbox = Mailbox {
+                    accounts: vec![],
+                    messages: vec![],
+                };
+                self.sample = false;
+            }
+            self.selected = None;
+            self.scope = Scope::AllInboxes;
+            self.receiving.load_account(id, label);
+        }
+        self.receiving
+            .poll(&mut self.mailbox, &mut self.status, &ctx);
+        if self
+            .selected
+            .as_ref()
+            .is_some_and(|key| !self.mailbox.messages.iter().any(|m| &m.key == key))
+        {
+            self.selected = None;
+        }
+
         if !self.accounts.is_open() {
             self.keyboard(&ctx);
         }
@@ -155,6 +209,11 @@ impl eframe::App for MadeMail {
                 ui.menu_button("File", |ui| {
                     if ui.button("Accounts…").clicked() {
                         self.accounts.open(&ctx);
+                    }
+                });
+                ui.menu_button("Mailbox", |ui| {
+                    if ui.button("Refresh Current Folder").clicked() {
+                        self.receiving.refresh(&self.scope);
                     }
                 });
                 ui.menu_button("View", |ui| {
@@ -172,42 +231,79 @@ impl eframe::App for MadeMail {
             ui.horizontal(|ui| {
                 ui.heading("Made Mail");
                 ui.separator();
-                ui.label("Native desktop foundation");
+                ui.label(if self.sample {
+                    "Fictional sample"
+                } else {
+                    "Read-only evaluation"
+                });
             });
         });
         egui::Panel::left("folders")
             .default_size(220.0)
             .resizable(true)
             .show(ui, |ui| {
-                ui.add_space(12.0);
-                let all = ui.selectable_label(self.scope == Scope::AllInboxes, "All Inboxes");
-                self.folders.push(all.id);
-                if all.clicked() {
-                    self.scope = Scope::AllInboxes;
-                    self.selected = None;
-                }
-                ui.separator();
-                for account in &self.mailbox.accounts {
-                    ui.label(&account.label);
-                    let scope = Scope::Inbox(account.id.clone());
-                    let inbox = ui.selectable_label(
-                        self.scope == scope,
-                        format!("Inbox — {}", account.label),
-                    );
-                    self.folders.push(inbox.id);
-                    if inbox.clicked() {
-                        self.scope = scope;
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.add_space(12.0);
+                    let all = ui.selectable_label(self.scope == Scope::AllInboxes, "All Inboxes");
+                    self.folders.push(all.id);
+                    if all.clicked() {
+                        self.scope = Scope::AllInboxes;
                         self.selected = None;
                     }
-                    ui.add_space(10.0);
-                }
+                    ui.separator();
+                    let mut load = None;
+                    for account in &self.mailbox.accounts {
+                        ui.label(&account.label);
+                        let scope = Scope::Inbox(account.id.clone());
+                        let inbox = ui.selectable_label(
+                            self.scope == scope,
+                            format!("Inbox — {}", account.label),
+                        );
+                        self.folders.push(inbox.id);
+                        if inbox.clicked() {
+                            self.scope = scope;
+                            self.selected = None;
+                            load = Some((account.id.clone(), "INBOX".to_owned()));
+                        }
+                        if let Some(folders) = self.receiving.folders.get(&account.id) {
+                            for folder in folders
+                                .iter()
+                                .filter(|f| !f.path.eq_ignore_ascii_case("INBOX"))
+                            {
+                                let scope = Scope::Folder {
+                                    account: account.id.clone(),
+                                    path: folder.path.clone(),
+                                };
+                                let row = ui.add_enabled(
+                                    folder.selectable,
+                                    egui::Button::new(&folder.label).selected(self.scope == scope),
+                                );
+                                if folder.selectable {
+                                    self.folders.push(row.id);
+                                }
+                                if row.clicked() {
+                                    self.scope = scope;
+                                    self.selected = None;
+                                    load = Some((account.id.clone(), folder.path.clone()));
+                                }
+                            }
+                        }
+                        ui.add_space(10.0);
+                    }
+                    if let Some((account, path)) = load {
+                        self.receiving.folder(&account, &path);
+                    }
+                });
             });
         let mut opened = None;
         egui::Panel::left("messages")
             .default_size(320.0)
             .resizable(true)
             .show(ui, |ui| {
-                ui.heading("Inbox");
+                ui.heading(match &self.scope {
+                    Scope::Folder { path, .. } => path.as_str(),
+                    _ => "Inbox",
+                });
                 ui.separator();
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for message in self.mailbox.visible(&self.scope) {
@@ -259,8 +355,7 @@ impl eframe::App for MadeMail {
             });
         self.scroll_to = None;
         if let Some(key) = opened {
-            self.mailbox.open(&key);
-            self.selected = Some(key);
+            self.select(key);
         }
         egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(14.0);
@@ -296,7 +391,9 @@ impl eframe::App for MadeMail {
                 });
             } else {
                 ui.heading("Choose a message");
-                ui.label("Select fictional mail from either Inbox or All Inboxes.");
+                ui.label(
+                    "Choose a message, or use File → Add Account to save settings and load mail.",
+                );
             }
         });
         // Native menu clicks need servicing even when the window is otherwise idle.
@@ -321,3 +418,7 @@ mod navigation;
 mod accounts;
 
 mod verify;
+
+mod receive;
+
+mod provider_presets;

@@ -210,7 +210,24 @@ fn check_stream(
     imap: bool,
     connector: &TlsConnector,
 ) -> Result<()> {
-    let mut secure = if security == Security::Tls {
+    let mut secure = secure_stream(stream, host, security, imap, connector)?;
+    if imap {
+        imap_auth(&mut secure, user, password)?;
+        let _ = secure.send("V005 LOGOUT");
+    } else {
+        smtp_auth(&mut secure, user, password)?;
+        let _ = secure.send("QUIT");
+    }
+    Ok(())
+}
+fn secure_stream(
+    stream: DeadlineStream,
+    host: &str,
+    security: Security,
+    imap: bool,
+    connector: &TlsConnector,
+) -> Result<Wire<TlsStream<DeadlineStream>>> {
+    let secure = if security == Security::Tls {
         let mut secure = tls(stream, host, connector)?;
         if imap {
             if !secure.line()?.to_ascii_uppercase().starts_with("* OK ") {
@@ -241,15 +258,31 @@ fn check_stream(
         }
         tls(plain.finish()?, host, connector)?
     };
-    if imap {
-        imap_auth(&mut secure, user, password)?;
-        let _ = secure.send("V005 LOGOUT");
-    } else {
-        smtp_auth(&mut secure, user, password)?;
-        let _ = secure.send("QUIT");
-    }
-    Ok(())
+    Ok(secure)
 }
+/// Reuses verification's pinned DNS, deadline, TLS upgrade and authentication boundary.
+pub(crate) fn imap_reader(settings: &Settings) -> Result<BufReader<TlsStream<DeadlineStream>>> {
+    settings.validate()?;
+    let connector = TlsConnector::builder()
+        .min_protocol_version(Some(native_tls::Protocol::Tlsv12))
+        .build()
+        .map_err(|_| "Could not initialize trusted TLS.")?;
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let stream = DeadlineStream::connect(
+        network::resolve(&settings.imap_host, settings.imap_port)?,
+        deadline,
+    )?;
+    let mut wire = secure_stream(
+        stream,
+        &settings.imap_host,
+        settings.imap_security,
+        true,
+        &connector,
+    )?;
+    imap_auth(&mut wire, &settings.imap_user, &settings.imap_password)?;
+    Ok(wire.reader)
+}
+
 fn payload(user: &str, password: &str) -> Zeroizing<String> {
     let mut bytes = Zeroizing::new(Vec::with_capacity(user.len() + password.len() + 2));
     bytes.push(0);

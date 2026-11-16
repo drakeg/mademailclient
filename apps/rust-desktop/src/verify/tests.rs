@@ -315,3 +315,46 @@ fn imap_capabilities_are_required_and_case_insensitive() {
         b"V003 CAPABILITY\r\n"
     );
 }
+
+#[test]
+fn authenticated_tls_connection_loads_folders_and_empty_inbox_read_only() {
+    let (client, accept) = socket_pair();
+    let server = std::thread::spawn(move || {
+        let stream = accept
+            .join()
+            .unwrap_or_else(|e| std::panic::resume_unwind(e));
+        let mut wire = Wire::new(identity().accept(stream).unwrap_or_else(|e| panic!("{e}")));
+        send(&mut wire, "* OK synthetic receiver");
+        assert_eq!(read(&mut wire), "V003 CAPABILITY");
+        send(&mut wire, "* CAPABILITY IMAP4rev1 AUTH=PLAIN");
+        send(&mut wire, "V003 OK ready");
+        assert_eq!(read(&mut wire), "V004 AUTHENTICATE PLAIN");
+        send(&mut wire, "+ ");
+        assert_eq!(
+            read(&mut wire),
+            *payload("fixture-user", "fictional-password")
+        );
+        send(&mut wire, "V004 OK authenticated");
+        assert_eq!(read(&mut wire), "R001 LIST \"\" \"*\"");
+        send(&mut wire, "* LIST () \"/\" \"INBOX\"");
+        send(&mut wire, "R001 OK listed");
+        assert_eq!(read(&mut wire), "R001 EXAMINE \"INBOX\"");
+        send(&mut wire, "* 0 EXISTS");
+        send(&mut wire, "* OK [UIDVALIDITY 99] stable");
+        send(&mut wire, "R001 OK [READ-ONLY] ready");
+    });
+    let stream = DeadlineStream::new(client, Instant::now() + Duration::from_secs(10));
+    let mut wire = secure_stream(stream, "localhost", Security::Tls, true, &connector(true))
+        .unwrap_or_else(|e| panic!("{e}"));
+    imap_auth(&mut wire, "fixture-user", "fictional-password").unwrap_or_else(|e| panic!("{e}"));
+    let page = crate::receive::page_from(&mut wire.reader, "INBOX", true)
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert!(page.headers.is_empty());
+    assert_eq!(
+        page.folders.unwrap_or_else(|| panic!("folders"))[0].path,
+        "INBOX"
+    );
+    server
+        .join()
+        .unwrap_or_else(|e| std::panic::resume_unwind(e));
+}

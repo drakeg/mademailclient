@@ -14,6 +14,10 @@ Owner direction: Made Mail remains the product. Remove Electron and webviews fro
 | N06 | Rules and purge | Rule planning parity; durable execution, native purge confirmations and snapshot safeguards |
 | N07 | Migration and installers | Explicit rollback-safe profile conversion, clean-machine DMG/EXE/Linux installation and full acceptance; only then replace Electron downloads |
 
-N01 is a toolkit evaluation, not an email-ready replacement. It must not open existing profiles or claim connected accounts. Use eframe/egui as a candidate Rust-rendered UI, AccessKit for accessibility and muda for OS-native Mac/Windows menus; these are public independent dependencies, not Mailcraft source. Controls are custom drawn, not AppKit/WinUI widgets. N02 decides whether this candidate meets the owner's polish requirements; a toolkit change is cheaper before provider work.
+N01 is a toolkit evaluation, not an email-ready replacement. It must not open existing profiles or claim provider parity. Use eframe/egui as a candidate Rust-rendered UI, AccessKit for accessibility and muda for OS-native Mac/Windows menus; these are public independent dependencies, not Mailcraft source. Controls are custom drawn, not AppKit/WinUI widgets. N02 decides whether this candidate meets the owner's polish requirements; a toolkit change is cheaper before provider work.
 
 Existing web demo remains separate. Hosted functionality is deferred. Current Electron CI/installers remain while Rust acceptance is incomplete. No JS bridge or service process in the Rust executable.
+
+## N04a — bounded read-only receiving
+
+Implemented for review: explicit saved-account receiving, server folders, newest 50 header rows, unified/per-account Inbox and individual folder navigation, plain-text body loading, separate UI/server IDs and stale UIDVALIDITY guards. Startup is empty; sample mail is opt-in. Latest pending selection replaces old requests, credentials stay out of UI replies, and live read flags are unchanged. See docs/RUST_RECEIVING.md for limits and synthetic evidence. Real-provider acceptance, background sync/pagination, mutation journal, sending, rules and installer cutover remain open; N04 is not complete.

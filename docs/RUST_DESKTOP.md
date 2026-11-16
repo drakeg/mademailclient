@@ -2,7 +2,7 @@
 
 Made Mail is moving toward a Rust desktop runtime without Electron or a webview. This branch starts an independent, original evaluation; **it is not yet a usable replacement email client**. No Mailcraft source or assets are used.
 
-The executable opens only invented mail: All Inboxes, two account Inboxes and a selectable reading pane. Opening a message marks that account's message read. Mac/Windows native menus expose Accounts and All Inboxes; mail-changing menu items are disabled. OS window decorations remain enabled. Linux has an in-window menu. The Accounts dialog can save unverified settings in a separate OS credential namespace; it opens no provider connections and never accesses the Electron profile.
+The executable starts empty. Its Accounts menu saves settings in a separate OS credential namespace, tests sign-ins explicitly, and can load folders and recent messages through the [read-only receiving flow](RUST_RECEIVING.md). No Electron profile is accessed. Mac/Windows menus and window decorations remain native; Linux has an in-window menu. Mail-changing commands remain disabled. Use `--sample` for invented mail, or `--account-fixture` for invented mail plus temporary settings without network or OS credentials.
 
 ## Development
 
@@ -18,7 +18,7 @@ Linux development needs the system X11/Wayland/OpenGL build packages listed in `
 
 ## Acceptance
 
-Review `tasks/plan.md` and `tasks/todo.md` for ordered slices. This candidate uses Rust-drawn egui controls and OS-native Mac/Windows menus. It does not yet claim full accessibility, native text-edit behavior, rich text, verified account connections or mail capability. Those checks determine whether this toolkit proceeds. Existing data must be migrated explicitly and safely before cutover. Never test by opening the user's profile or connecting their accounts.
+Review `tasks/plan.md` and `tasks/todo.md` for ordered slices. This candidate uses Rust-drawn egui controls and OS-native Mac/Windows menus. It does not yet claim full accessibility, native text-edit behavior, rich text, full provider parity or mail-changing capability. Those checks determine whether this toolkit proceeds. Existing data must be migrated explicitly and safely before cutover. Never test by opening the user's profile or connecting their accounts.
 
 Initial CI uses Intel Mac runners because GitHub reported Apple Silicon runner capacity failures during this change. The Apple Silicon build and native-menu checks were performed locally. Cross-platform CI compilation does not replace clean-machine runtime acceptance.
 
@@ -26,7 +26,7 @@ Initial CI uses Intel Mac runners because GitHub reported Apple Silicon runner c
 
 - Tab / Shift+Tab traverse focusable controls. Inbox controls include their account in the accessible name.
 - F6 / Shift+F6 cycle between the folder list, message list and displayed message body (when open).
-- Click a message, or focus a message row using the keyboard. Up/Down open the previous/next message within the current Inbox scope; Home/End open the first/last. Navigation stops at the ends. Opening marks only that account's message read.
+- Click a message, or focus a message row using the keyboard. Up/Down open the previous/next message within the current Inbox scope; Home/End open the first/last. Navigation stops at the ends. In sample mode, opening marks only that fictional account's message read. Live read-only browsing leaves unread flags unchanged.
 - The displayed body is an immutable text buffer: keyboard selection and copying are available, but typing cannot edit the message. Native Edit → Select All / Copy dispatch to the focused text control; command/control shortcuts remain available. Selection state is isolated per message/account.
 - Only keyboard navigation requests that the selected row scroll into view; ordinary manual scrolling remains available.
 
@@ -34,9 +34,9 @@ These changes advance the toolkit evaluation, not account/provider readiness. Fu
 
 ## Account settings (N03a, partial)
 
-File → Add Account… and the Mac app menu → Accounts… open the Rust Accounts dialog. Enter email, IMAP and SMTP hostnames/ports, TLS or STARTTLS, and separate usernames/passwords. **Save settings securely** stores unverified settings; it does not connect, fetch mail or send anything. Saved settings can be reloaded and removed with confirmation. The Inbox panes still contain fictional mail.
+File → Add Account… and the Mac app menu → Accounts… open the Rust Accounts dialog. Enter email, IMAP and SMTP hostnames/ports, TLS or STARTTLS, and separate usernames/passwords. **Save settings securely** stores unverified settings; it does not connect, fetch mail or send anything. Saved settings can be reloaded and removed with confirmation. Use Read mail… to explicitly load folders and the Inbox.
 
-This is a separate Rust evaluation namespace. Existing Electron accounts, rules, drafts and mail are not imported or changed. Auto-discovery, browser sign-in, verification, editing saved settings and using these settings for live mail remain subsequent work. Full toolkit/accessibility acceptance also remains open.
+This is a separate Rust evaluation namespace. Existing Electron accounts, rules, drafts and mail are not imported or changed. Network auto-discovery, browser sign-in, editing saved settings and mail-changing operations remain subsequent work. Full toolkit/accessibility acceptance also remains open.
 
 The default backend explicitly selects Mac Keychain, Windows Credential Manager (local persistence), or Linux Secret Service. A locked/unavailable backend fails visibly; there is no plaintext or automatic in-memory fallback. See [the storage contract](RUST_ACCOUNT_STORAGE.md).
 
@@ -44,6 +44,8 @@ For GUI acceptance only, `cargo run -p made-mail-native -- --account-fixture` us
 
 ## Verify saved sign-ins (N03b)
 
-Accounts → Test IMAP and SMTP… shows the exact servers and requests explicit confirmation. Verification uses trusted TLS, public-address DNS checks and bounded protocol handling, then reports IMAP and SMTP independently. It authenticates only: no mailbox is opened and no email is submitted. Browser sign-in, provider discovery, receiving and sending remain later work. See [verification safeguards and limits](RUST_CONNECTION_VERIFICATION.md).
+Accounts → Test IMAP and SMTP… shows the exact servers and requests explicit confirmation. Verification uses trusted TLS, public-address DNS checks and bounded protocol handling, then reports IMAP and SMTP independently. It authenticates only: no mailbox is opened and no email is submitted. Read-only receiving is a separate explicitly requested operation; browser sign-in, provider discovery and sending remain later work. See [verification safeguards and limits](RUST_CONNECTION_VERIFICATION.md).
 
 In `--account-fixture` mode the **Preview sign-in test…** button shows the confirmation, but Verify is disabled and a runtime guard prevents network use. Test certificates are used only by synthetic loopback tests, never production trust.
+
+Known-provider settings can be filled explicitly for Gmail, Yahoo and iCloud; see [provider presets](RUST_PROVIDER_PRESETS.md). These do not perform discovery or browser sign-in.
