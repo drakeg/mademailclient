@@ -26,7 +26,7 @@ features = ["derive"]
 [dependencies.serde_json]
 version = "=1.0.154"
 [dependencies.zeroize]
-version = "=1.9.1"
+version = "=1.9.2"
 [dependencies.uuid]
 version = "=1.29.2"
 features = ["v4"]
