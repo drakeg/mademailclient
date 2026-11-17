@@ -45,3 +45,10 @@ version = "=0.2.18"
 default-features = false
 [dependencies.base64]
 version = "=0.23.1"
+
+[dependencies.imap-proto]
+version = "=0.17.0"
+[dependencies.mail-parser]
+version = "=1.0.1"
+default-features = false
+features = ["full_encoding"]

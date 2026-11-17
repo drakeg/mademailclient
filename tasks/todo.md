@@ -13,4 +13,8 @@ N02 keyboard/text slice: implement scoped arrow/Home/End message navigation, F6 
 
 N03a: implement a separate unverified Accounts settings form and explicit OS credential storage. Preserve Electron profiles; use only synthetic acceptance fixtures. Account connection/discovery/OAuth and native-store restart acceptance remain later slices. See docs/RUST_ACCOUNT_STORAGE.md for limits, recovery and dependency review.
 
-N03b: add explicit trusted-TLS IMAP/SMTP authentication checks for saved Rust settings, with independent results and exact-server consent. Validate with synthetic loopback TLS/STARTTLS servers; do not connect the owner's accounts. Receiving/sending and public-provider acceptance remain pending.
+N03b: add explicit trusted-TLS IMAP/SMTP authentication checks for saved Rust settings, with independent results and exact-server consent. Validate with synthetic loopback TLS/STARTTLS servers; do not connect the owner's accounts. Read-only receiving is the next implemented slice; sending and public-provider acceptance remain pending.
+
+N03c: restore provider presets from merged PR #25, which targeted the previous feature branch and was absent from the active base. Preserve Gmail/Yahoo/iCloud defaults and custom-field safeguards.
+
+N04a: implement explicit read-only folder/header/body loading, empty startup, scope isolation, stable server references, stale response guards and bounded plain-text decoding. See docs/RUST_RECEIVING.md. Synthetic tests and Mac sample/temporary-settings GUI checks passed; cross-platform CI and real-provider acceptance must be reported separately. Sending, mutations, synchronization and installer cutover remain backlog.

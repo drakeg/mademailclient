@@ -30,7 +30,7 @@ mod tests {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MessageKey {
     pub account: String,
     pub id: u64,
@@ -48,6 +48,7 @@ pub struct Message {
 pub enum Scope {
     AllInboxes,
     Inbox(String),
+    Folder { account: String, path: String },
 }
 pub struct Account {
     pub id: String,
@@ -61,12 +62,10 @@ impl Mailbox {
     pub fn visible(&self, scope: &Scope) -> Vec<&Message> {
         self.messages
             .iter()
-            .filter(|m| {
-                m.folder == "INBOX"
-                    && match scope {
-                        Scope::AllInboxes => true,
-                        Scope::Inbox(id) => &m.key.account == id,
-                    }
+            .filter(|m| match scope {
+                Scope::AllInboxes => m.folder.eq_ignore_ascii_case("INBOX"),
+                Scope::Inbox(id) => &m.key.account == id && m.folder.eq_ignore_ascii_case("INBOX"),
+                Scope::Folder { account, path } => &m.key.account == account && &m.folder == path,
             })
             .collect()
     }
@@ -83,9 +82,37 @@ impl Mailbox {
             ],
             messages: vec![
                 Message { key: MessageKey { account: "sample-a".into(), id: 1 }, sender: "Morgan".into(), subject: "Welcome to Made Mail".into(), body: "This is the original Rust desktop foundation for Made Mail.\n\nThis window uses fictional mail only. Your existing accounts and messages have not been opened.\n\nChoose an account’s Inbox or All Inboxes on the left.".into(), folder: "INBOX".into(), unread: true },
-                Message { key: MessageKey { account: "sample-b".into(), id: 1 }, sender: "Jamie".into(), subject: "One inbox, multiple accounts".into(), body: "Both sample accounts appear in All Inboxes. Individual account folders remain available.\n\nThis evaluation does not yet connect, send or delete mail.".into(), folder: "INBOX".into(), unread: true },
+                Message { key: MessageKey { account: "sample-b".into(), id: 1 }, sender: "Jamie".into(), subject: "One inbox, multiple accounts".into(), body: "Both sample accounts appear in All Inboxes. Individual account folders remain available.\n\nThis fictional sample does not use a network connection. Read-only receiving is available separately through Accounts; sending and deletion are not yet connected.".into(), folder: "INBOX".into(), unread: true },
                 Message { key: MessageKey { account: "sample-a".into(), id: 2 }, sender: "Alex".into(), subject: "Sent fixture".into(), body: "Not an Inbox message.".into(), folder: "Sent".into(), unread: false },
             ],
         }
+    }
+}
+
+#[cfg(test)]
+mod folder_tests {
+    use super::*;
+    #[test]
+    fn folder_scope_does_not_mix_accounts_or_inboxes() {
+        let mut mailbox = Mailbox::sample();
+        mailbox.messages[0].folder = "inbox".into();
+        assert_eq!(mailbox.visible(&Scope::AllInboxes).len(), 2);
+        assert_eq!(
+            mailbox
+                .visible(&Scope::Folder {
+                    account: "sample-a".into(),
+                    path: "Sent".into()
+                })
+                .len(),
+            1
+        );
+        assert!(
+            mailbox
+                .visible(&Scope::Folder {
+                    account: "sample-b".into(),
+                    path: "Sent".into()
+                })
+                .is_empty()
+        );
     }
 }

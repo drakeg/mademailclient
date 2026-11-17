@@ -62,6 +62,12 @@ impl NativeMenus {
             menu.append(&view)?;
             let mailbox = Submenu::new("Mailbox", true);
             mailbox.append_items(&[
+                &MenuItem::with_id(
+                    "refresh",
+                    "Refresh Current Folder",
+                    true,
+                    Some(Accelerator::new(command, Code::KeyR)),
+                ),
                 &MenuItem::new("Rules…", false, None),
                 &MenuItem::new("Empty Junk…", false, None),
                 &MenuItem::new("Empty Deleted Items…", false, None),

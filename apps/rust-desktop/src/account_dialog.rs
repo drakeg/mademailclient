@@ -81,6 +81,9 @@ pub struct AccountDialog {
     verify: Option<(String, String)>,
     checked: std::collections::HashMap<String, bool>,
     fixture: Option<Fixture>,
+    receive: Option<(String, String)>,
+    receive_request: Option<(String, String)>,
+    pub removed: Vec<String>,
 }
 impl AccountDialog {
     pub fn new(fixture: bool) -> Self {
@@ -93,6 +96,9 @@ impl AccountDialog {
             remove: None,
             verify: None,
             checked: Default::default(),
+            receive: None,
+            receive_request: None,
+            removed: Vec::new(),
             fixture: fixture.then(|| Arc::new(Mutex::new(Default::default()))),
         }
     }
@@ -101,6 +107,13 @@ impl AccountDialog {
         settings.imap_port = 993;
         settings.smtp_port = 465;
         settings
+    }
+    pub fn take_receive(&mut self) -> Option<(String, String)> {
+        if self.fixture.is_some() {
+            self.receive_request = None;
+            return None;
+        }
+        self.receive_request.take()
     }
     pub fn is_open(&self) -> bool {
         self.open
@@ -175,7 +188,7 @@ impl AccountDialog {
             window = window.open(&mut open);
         }
         window.show(ctx, |ui| {
-            ui.label("Rust account settings · not yet connected to mail");
+            ui.label("Rust account settings · explicit read-only receiving");
             if self.fixture.is_some() {
                 ui.colored_label(egui::Color32::DARK_RED, "TEST SESSION — temporary memory only; OS credentials are not accessed.");
             } else {
@@ -185,13 +198,31 @@ impl AccountDialog {
             ui.heading("Saved settings");
             let mut remove = None;
             let mut verify = None;
+            let mut receive=None;
             if self.saved.is_empty() { ui.label("No saved settings loaded."); }
             for account in &self.saved {
-                ui.horizontal(|ui| {
+                ui.group(|ui| {
                     ui.label(&account.label);
                     ui.label(if account.incomplete { "Incomplete" } else if self.checked.get(&account.id)==Some(&true) { "Authentication checked this session" } else { "Unverified" });
+                    ui.horizontal_wrapped(|ui|{
                     if ui.add_enabled(!busy&&!account.incomplete,egui::Button::new(if self.fixture.is_some(){"Preview sign-in test…"}else{"Test IMAP and SMTP…"})).clicked() { verify=Some((account.id.clone(),format!("{}\n{}",account.label,account.endpoints))); }
+                    if ui.add_enabled(!busy&&!account.incomplete&&self.fixture.is_none(),egui::Button::new("Read mail…")).clicked(){receive=Some((account.id.clone(),format!("{}\n{}",account.label,account.endpoints)));}
                     if ui.add_enabled(!busy, egui::Button::new("Remove…")).clicked() { remove = Some(account.id.clone()); }
+                    });
+                });
+            }
+            if let Some(target)=receive {self.receive=Some(target);}
+            if let Some((id,details))=self.receive.clone(){
+                ui.group(|ui|{
+                    ui.label(&details);
+                    ui.label("Sign in to the saved incoming server and load folders and the newest 50 Inbox messages? Reading is read-only in this evaluation. No mail will be marked read, changed or sent.");
+                    ui.horizontal(|ui|{
+                        if ui.button("Cancel reading").clicked(){self.receive=None;}
+                        if ui.add_enabled(!busy&&self.fixture.is_none(),egui::Button::new("Load folders and Inbox")).clicked(){
+                            let label=self.saved.iter().find(|a|a.id==id).map(|a|a.label.clone()).unwrap_or_default();
+                            self.receive_request=Some((id,label));self.receive=None;self.open=false;
+                        }
+                    });
                 });
             }
             if let Some(id) = remove { self.remove = Some(id); }
@@ -214,6 +245,7 @@ impl AccountDialog {
                         if ui.add_enabled(!busy, egui::Button::new("Cancel removal")).clicked() { self.remove = None; }
                         if ui.add_enabled(!busy, egui::Button::new("Remove saved settings")).clicked() {
                             self.remove = None;
+                            self.removed.push(id.clone());
                             self.start(Operation::Remove(id), ctx);
                         }
                     });
@@ -228,6 +260,10 @@ impl AccountDialog {
                     ui.text_edit_singleline(&mut self.form.email).labelled_by(label.id);
                     ui.end_row();
                 });
+                if ui.button("Fill known provider settings").clicked() {
+                    self.status=match crate::provider_presets::apply(&mut self.form) { Ok(note)|Err(note)=>note.into() };
+                }
+                ui.label("Built-in presets: gmail.com, yahoo.com and icloud.com. No lookup or sign-in is performed.");
                 Self::endpoint(ui, "Incoming · IMAP", &mut self.form.imap_host, &mut self.form.imap_port, &mut self.form.imap_security, &mut self.form.imap_user, &mut self.form.imap_password);
                 Self::endpoint(ui, "Outgoing · SMTP", &mut self.form.smtp_host, &mut self.form.smtp_port, &mut self.form.smtp_security, &mut self.form.smtp_user, &mut self.form.smtp_password);
                 ui.label("Use an app password if required. Browser sign-in and discovery are not implemented. Save settings, then Test IMAP and SMTP to check authentication.");
@@ -251,6 +287,7 @@ impl AccountDialog {
             self.form = Self::blank();
             self.remove = None;
             self.verify = None;
+            self.receive = None;
         }
     }
     #[allow(clippy::too_many_arguments)]
@@ -303,5 +340,7 @@ mod verification_tests {
         );
         assert!(dialog.pending.is_none());
         assert!(dialog.status.contains("disabled"));
+        dialog.receive_request = Some(("fixture".into(), "fictional".into()));
+        assert!(dialog.take_receive().is_none());
     }
 }

@@ -161,3 +161,7 @@ Under review: native-menu Accounts form with IMAP/SMTP, TLS/STARTTLS, validation
 ### N03b — explicit saved-account sign-in verification
 
 Under review: separately report IMAP/SMTP authentication over validated TLS or mandatory STARTTLS, with exact-server confirmation, DNS address pinning/private-address rejection, bounded transport/protocol reads and no credential logging/plaintext fallback. Synthetic TLS fixtures and fixture-only GUI acceptance cover success and security failures. No SELECT/FETCH or SMTP envelope/DATA, automatic retries, discovery/OAuth or live mail yet. Next: provider setup conveniences, then bounded folder/Inbox reception with account isolation and stale-message guards.
+
+### N04a — Rust read-only folders and message loading
+
+Implemented for review with explicit connection consent, trusted transport reuse, bounded LIST/EXAMINE/PEEK reads, separate UI and server identities, mailbox replacement guards and one-worker selection handling. Startup is empty. See RUST_RECEIVING.md for exact caps and evidence. Receiving does not complete read/flag changes, deletion, sending, synchronization or real-provider acceptance. Existing Release installers remain unchanged.
